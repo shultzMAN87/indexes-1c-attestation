@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="450" viewBox="0 0 880 450" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs><marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker></defs>
+<rect x="0.5" y="0.5" width="879" height="449" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="30" font-size="17" font-weight="700" fill="#111827">Где лежат строки: кластерная таблица MS SQL и куча PostgreSQL</text>
+<rect x="16" y="44" width="416" height="396" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+<rect x="448" y="44" width="416" height="396" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="32" y="68" font-size="15" font-weight="700" fill="#111827">MS SQL Server</text>
+<text x="464" y="68" font-size="15" font-weight="700" fill="#111827">PostgreSQL</text>
+<line x1="200" y1="114" x2="124" y2="146" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#g)"/>
+<line x1="248" y1="114" x2="324" y2="146" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#g)"/>
+<rect x="164" y="84" width="120" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="224" y="104" font-size="13" text-anchor="middle" font-weight="700" fill="#1e3a8a">Ссылка</text>
+<text x="294" y="96" font-size="12" fill="#6b7280">кластерный индекс</text><text x="294" y="110" font-size="12" fill="#6b7280">= сама таблица</text>
+<rect x="32" y="148" width="184" height="76" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="42" y="165" font-size="12" font-weight="700" fill="#14532d" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">Ссылка Дата  Сумма</text>
+<text x="42" y="184" font-size="12.5" fill="#14532d" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">01     05.03 100</text>
+<text x="42" y="201" font-size="12.5" fill="#14532d" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">02     01.03 250</text>
+<rect x="232" y="148" width="184" height="76" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="242" y="165" font-size="12" font-weight="700" fill="#14532d" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">Ссылка Дата  Сумма</text>
+<text x="242" y="184" font-size="12.5" fill="#14532d" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">03     07.03  40</text>
+<text x="242" y="201" font-size="12.5" fill="#14532d" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">04     02.03  75</text>
+<text x="32" y="244" font-size="12" fill="#14532d">листья = строки целиком,</text>
+<text x="32" y="260" font-size="12" fill="#14532d">по порядку ключа</text>
+<line x1="224" y1="296" x2="224" y2="118" stroke="#ea580c" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#o)"/>
+<text x="234" y="252" font-size="12" font-weight="700" fill="#c2410c">Key Lookup:</text>
+<text x="234" y="268" font-size="12" fill="#c2410c">поиск строки по Ссылке</text>
+<line x1="200" y1="326" x2="124" y2="350" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#g)"/>
+<line x1="248" y1="326" x2="324" y2="350" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#g)"/>
+<rect x="164" y="296" width="120" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="224" y="316" font-size="13" text-anchor="middle" font-weight="700" fill="#1e3a8a">Дата</text>
+<text x="294" y="315" font-size="12" fill="#6b7280">некластерный индекс</text>
+<rect x="32" y="352" width="184" height="48" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="42" y="372" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">01.03 → 02</text>
+<text x="42" y="389" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">02.03 → 04</text>
+<rect x="232" y="352" width="184" height="48" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="242" y="372" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">05.03 → 01</text>
+<text x="242" y="389" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">07.03 → 03</text>
+<text x="32" y="422" font-size="12" fill="#1e3a8a">лист: Дата + ключ кластерного индекса (Ссылка)</text>
+<rect x="464" y="84" width="184" height="92" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="474" y="101" font-size="12" font-weight="700" fill="#1e3a8a">индекс PK (Ссылка)</text>
+<text x="474" y="120" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">01 → (0,2)</text>
+<text x="474" y="137" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">02 → (0,1)</text>
+<text x="474" y="154" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">03 → (1,1)</text>
+<text x="474" y="171" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">04 → (0,3)</text>
+<rect x="664" y="84" width="184" height="92" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="674" y="101" font-size="12" font-weight="700" fill="#1e3a8a">индекс (Дата)</text>
+<text x="674" y="120" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">01.03 → (0,1)</text>
+<text x="674" y="137" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">02.03 → (0,3)</text>
+<text x="674" y="154" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">05.03 → (0,2)</text>
+<text x="674" y="171" font-size="12.5" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">07.03 → (1,1)</text>
+<rect x="464" y="236" width="184" height="92" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
+<text x="474" y="253" font-size="12" font-weight="700" fill="#374151">куча: страница 0</text>
+<text x="474" y="272" font-size="12.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(0,1) 02 01.03 250</text>
+<text x="474" y="289" font-size="12.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(0,2) 01 05.03 100</text>
+<text x="474" y="306" font-size="12.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(0,3) 04 02.03  75</text>
+<rect x="664" y="236" width="184" height="92" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
+<text x="674" y="253" font-size="12" font-weight="700" fill="#374151">куча: страница 1</text>
+<text x="674" y="272" font-size="12.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(1,1) 03 07.03  40</text>
+<text x="674" y="289" font-size="12.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(1,2) свободно</text>
+<line x1="556" y1="178" x2="556" y2="232" stroke="#2563eb" stroke-width="1.5" marker-end="url(#b)"/><line x1="756" y1="178" x2="756" y2="232" stroke="#2563eb" stroke-width="1.5" marker-end="url(#b)"/><line x1="720" y1="178" x2="610" y2="232" stroke="#2563eb" stroke-width="1.5" marker-end="url(#b)"/><line x1="600" y1="178" x2="700" y2="232" stroke="#2563eb" stroke-width="1.5" marker-end="url(#b)"/><text x="808" y="210" font-size="12" fill="#1e3a8a" text-anchor="middle">по ctid</text>
+<text x="464" y="352" font-size="12" fill="#374151">строки лежат без порядка — там, где нашлось место;</text>
+<text x="464" y="368" font-size="12" fill="#374151">адрес строки — ctid (страница, позиция)</text>
+<text x="464" y="396" font-size="12" fill="#374151">все индексы вторичные и равноправны;</text>
+<text x="464" y="412" font-size="12" fill="#374151">CLUSTER упорядочит строки один раз, порядок</text>
+<text x="464" y="428" font-size="12" fill="#374151">не поддерживается</text>
+</svg>

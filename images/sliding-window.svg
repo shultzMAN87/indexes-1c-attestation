@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="420" viewBox="0 0 880 420" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker></defs>
+<rect x="0.5" y="0.5" width="879" height="419" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="30" font-size="17" font-weight="700" fill="#111827">Скользящее окно: ежемесячная ротация секций</text>
+<text x="24" y="71" font-size="13" font-weight="700" fill="#111827">Исходно</text>
+<text x="24" y="88" font-size="11.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">4 границы, 5 секций</text>
+<rect x="250" y="56" width="96" height="36" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="298.0" y="79" font-size="12" text-anchor="middle" fill="#6b7280">&lt; 01.01</text>
+<rect x="350" y="56" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="398.0" y="79" font-size="12" text-anchor="middle" fill="#14532d">Январь</text>
+<rect x="450" y="56" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="498.0" y="79" font-size="12" text-anchor="middle" fill="#14532d">Февраль</text>
+<rect x="550" y="56" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="598.0" y="79" font-size="12" text-anchor="middle" fill="#14532d">Март</text>
+<rect x="650" y="56" width="96" height="36" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="698.0" y="79" font-size="12" text-anchor="middle" fill="#6b7280">≥ 01.04</text>
+<text x="24" y="151" font-size="13" font-weight="700" fill="#111827">1. Выгрузить январь</text>
+<text x="24" y="168" font-size="11.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">SWITCH PARTITION 2 TO Stage</text>
+<rect x="250" y="136" width="96" height="36" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="298.0" y="159" font-size="12" text-anchor="middle" fill="#6b7280">&lt; 01.01</text>
+<rect x="350" y="136" width="96" height="36" rx="5" fill="#f3f4f6" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="398.0" y="159" font-size="12" text-anchor="middle" fill="#9ca3af">пусто</text>
+<rect x="450" y="136" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="498.0" y="159" font-size="12" text-anchor="middle" fill="#14532d">Февраль</text>
+<rect x="550" y="136" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="598.0" y="159" font-size="12" text-anchor="middle" fill="#14532d">Март</text>
+<rect x="650" y="136" width="96" height="36" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="698.0" y="159" font-size="12" text-anchor="middle" fill="#6b7280">≥ 01.04</text>
+<text x="24" y="231" font-size="13" font-weight="700" fill="#111827">2. Убрать границу</text>
+<text x="24" y="248" font-size="11.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">MERGE RANGE ('2024-01-01')</text>
+<rect x="250" y="216" width="96" height="36" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="298.0" y="239" font-size="12" text-anchor="middle" fill="#6b7280">&lt; 01.02</text>
+<rect x="350" y="216" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="398.0" y="239" font-size="12" text-anchor="middle" fill="#14532d">Февраль</text>
+<rect x="450" y="216" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="498.0" y="239" font-size="12" text-anchor="middle" fill="#14532d">Март</text>
+<rect x="550" y="216" width="96" height="36" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="598.0" y="239" font-size="12" text-anchor="middle" fill="#6b7280">≥ 01.04</text>
+<text x="24" y="311" font-size="13" font-weight="700" fill="#111827">3. Добавить май</text>
+<text x="24" y="328" font-size="11.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">NEXT USED + SPLIT ('2024-05-01')</text>
+<rect x="250" y="296" width="96" height="36" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="298.0" y="319" font-size="12" text-anchor="middle" fill="#6b7280">&lt; 01.02</text>
+<rect x="350" y="296" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="398.0" y="319" font-size="12" text-anchor="middle" fill="#14532d">Февраль</text>
+<rect x="450" y="296" width="96" height="36" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="498.0" y="319" font-size="12" text-anchor="middle" fill="#14532d">Март</text>
+<rect x="550" y="296" width="96" height="36" rx="5" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="598.0" y="319" font-size="12" text-anchor="middle" fill="#1e3a8a">Апрель (пуст)</text>
+<rect x="650" y="296" width="96" height="36" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="698.0" y="319" font-size="12" text-anchor="middle" fill="#6b7280">≥ 01.05</text>
+<rect x="760" y="132" width="104" height="44" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="1.5"/>
+<text x="812" y="150" font-size="12" text-anchor="middle" font-weight="700" fill="#9a3412">Orders_Stage</text>
+<text x="812" y="166" font-size="11" text-anchor="middle" fill="#9a3412">январь → архив</text>
+<path d="M 398.0 172 C 400 190, 700 196, 758 166" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#a)"/>
+<text x="24" y="368" font-size="13" fill="#374151"><tspan font-weight="700">Всё мгновенно</tspan> (только метаданные), если затронутые секции пусты. Поэтому по краям всегда держат</text>
+<text x="24" y="386" font-size="13" fill="#374151">пустые секции, новую границу добавляют заранее, а все индексы таблицы — выровненные (иначе SWITCH не сработает).</text>
+<text x="24" y="406" font-size="12" fill="#6b7280">RANGE RIGHT: граница относится к секции справа (01.02 — в февральской секции).</text>
+</svg>

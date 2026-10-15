@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="380" viewBox="0 0 880 380" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker><pattern id="dead" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#e5e7eb"/><line x1="0" y1="0" x2="0" y2="6" stroke="#9ca3af" stroke-width="2"/></pattern></defs>
+<rect x="0.5" y="0.5" width="879" height="379" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="30" font-size="17" font-weight="700" fill="#111827">Раздувание и фрагментация — разные проблемы</text>
+<text x="24" y="50" font-size="13" fill="#6b7280">Прямоугольник — страница файла (слева направо — физический порядок), подпись — логический порядок по ключу.</text>
+<rect x="16" y="64" width="272" height="304" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="30" y="90" font-size="15" font-weight="700" fill="#15803d">Норма</text>
+<rect x="32" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="34" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="52.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L1</text>
+<rect x="82" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="84" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="102.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L2</text>
+<rect x="132" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="134" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="152.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L3</text>
+<rect x="182" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="184" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="202.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L4</text>
+<rect x="232" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="234" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="252.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L5</text>
+<path d="M 52.0 146 C 52.0 119.0, 102.0 119.0, 102.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 102.0 146 C 102.0 119.0, 152.0 119.0, 152.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 152.0 146 C 152.0 119.0, 202.0 119.0, 202.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 202.0 146 C 202.0 119.0, 252.0 119.0, 252.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="30" y="282" font-size="12" fill="#374151">Страницы плотные и идут по порядку.</text>
+<text x="30" y="299" font-size="12" fill="#374151">Сканирование диапазона читает их</text>
+<text x="30" y="316" font-size="12" fill="#374151">подряд, без лишних страниц.</text>
+<rect x="304" y="64" width="272" height="304" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="318" y="90" font-size="15" font-weight="700" fill="#c2410c">Раздувание (bloat)</text>
+<rect x="320" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="322" y="212.0" width="36" height="27.0" fill="#86efac"/>
+<rect x="322" y="185.0" width="36" height="27.0" fill="url(#dead)"/>
+<text x="340.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L1</text>
+<rect x="370" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="372" y="216.5" width="36" height="22.5" fill="#86efac"/>
+<rect x="372" y="185.0" width="36" height="31.499999999999996" fill="url(#dead)"/>
+<text x="390.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L2</text>
+<rect x="420" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="422" y="212.0" width="36" height="27.0" fill="#86efac"/>
+<rect x="422" y="189.5" width="36" height="22.5" fill="url(#dead)"/>
+<text x="440.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L3</text>
+<rect x="470" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="472" y="221.0" width="36" height="18.0" fill="#86efac"/>
+<rect x="472" y="185.0" width="36" height="36.0" fill="url(#dead)"/>
+<text x="490.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L4</text>
+<rect x="520" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="522" y="212.0" width="36" height="27.0" fill="#86efac"/>
+<rect x="522" y="185.0" width="36" height="27.0" fill="url(#dead)"/>
+<text x="540.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L5</text>
+<path d="M 340.0 146 C 340.0 119.0, 390.0 119.0, 390.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 390.0 146 C 390.0 119.0, 440.0 119.0, 440.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 440.0 146 C 440.0 119.0, 490.0 119.0, 490.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 490.0 146 C 490.0 119.0, 540.0 119.0, 540.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="318" y="282" font-size="12" fill="#374151">Порядок верный, но внутри страниц</text>
+<text x="318" y="299" font-size="12" fill="#374151">мёртвые версии и пустота: тех же данных</text>
+<text x="318" y="316" font-size="12" fill="#374151">— в 2–3 раза больше страниц.</text>
+<text x="318" y="333" font-size="12" fill="#374151">PG: pgstattuple → tuple_percent,</text>
+<text x="318" y="350" font-size="12" fill="#374151">pgstatindex → avg_leaf_density</text>
+<rect x="592" y="64" width="272" height="304" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="606" y="90" font-size="15" font-weight="700" fill="#1d4ed8">Фрагментация</text>
+<rect x="608" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="610" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="628.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L1</text>
+<rect x="658" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="660" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="678.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L4</text>
+<rect x="708" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="710" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="728.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L2</text>
+<rect x="758" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="760" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="778.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L5</text>
+<rect x="808" y="150" width="40" height="90" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="1.2"/>
+<rect x="810" y="158.0" width="36" height="81.0" fill="#86efac"/>
+<text x="828.0" y="258" font-size="12" text-anchor="middle" fill="#374151" font-weight="700">L3</text>
+<path d="M 628.0 146 C 628.0 110.0, 728.0 110.0, 728.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 728.0 146 C 728.0 110.0, 828.0 110.0, 828.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 828.0 146 C 828.0 101.0, 678.0 101.0, 678.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 678.0 146 C 678.0 110.0, 778.0 110.0, 778.0 148" fill="none" stroke="#2563eb" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="606" y="282" font-size="12" fill="#374151">Страницы плотные, но лежат</text>
+<text x="606" y="299" font-size="12" fill="#374151">не по порядку ключа (после page split).</text>
+<text x="606" y="316" font-size="12" fill="#374151">Диапазон читается «прыжками».</text>
+<text x="606" y="333" font-size="12" fill="#374151">MS SQL: avg_fragmentation_in_percent</text>
+<text x="606" y="350" font-size="12" fill="#374151">PG: pgstatindex → leaf_fragmentation</text>
+<rect x="24" y="0" width="0" height="0"/>
+</svg>

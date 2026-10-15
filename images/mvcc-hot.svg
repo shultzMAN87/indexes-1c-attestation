@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="420" viewBox="0 0 880 420" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker><marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker><marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker></defs>
+<rect x="0.5" y="0.5" width="879" height="419" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="30" font-size="17" font-weight="700" fill="#111827">UPDATE в PostgreSQL: Сумма 100 → 150 (Сумма не входит ни в один индекс)</text>
+<rect x="16" y="44" width="416" height="366" rx="10" fill="#fff7ed" stroke="#fed7aa"/>
+<rect x="448" y="44" width="416" height="366" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+<text x="32" y="68" font-size="15" font-weight="700" fill="#9a3412">Обычное обновление (без HOT)</text>
+<text x="464" y="68" font-size="15" font-weight="700" fill="#15803d">HOT-обновление</text>
+<rect x="32" y="84" width="184" height="72" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="42" y="101" font-size="12" font-weight="700" fill="#1e3a8a" text-anchor="start" >индекс по Ссылке</text>
+<text x="42" y="121" font-size="12.5" font-weight="400" fill="#6b7280" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">01    → (0,1)</text>
+<rect x="38" y="128" width="172" height="22" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="1"/>
+<text x="42" y="144" font-size="12.5" font-weight="700" fill="#9a3412" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">01    → (1,4)</text>
+<rect x="232" y="84" width="184" height="72" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="242" y="101" font-size="12" font-weight="700" fill="#1e3a8a" text-anchor="start" >индекс по Дате</text>
+<text x="242" y="121" font-size="12.5" font-weight="400" fill="#6b7280" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">05.03 → (0,1)</text>
+<rect x="238" y="128" width="172" height="22" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="1"/>
+<text x="242" y="144" font-size="12.5" font-weight="700" fill="#9a3412" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">05.03 → (1,4)</text>
+
+<rect x="32" y="214" width="184" height="70" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
+<text x="42" y="231" font-size="12" font-weight="700" fill="#374151" text-anchor="start" >куча: страница 0 (полная)</text>
+<text x="42" y="252" font-size="12.5" font-weight="400" fill="#9ca3af" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(0,1) v1 Сумма=100</text>
+<line x1="42" y1="248" x2="190" y2="248" stroke="#9ca3af"/>
+<text x="42" y="272" font-size="12" font-weight="400" fill="#9ca3af" text-anchor="start" >мёртвая версия</text>
+<rect x="232" y="214" width="184" height="70" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
+<text x="242" y="231" font-size="12" font-weight="700" fill="#374151" text-anchor="start" >куча: страница 1</text>
+<text x="242" y="252" font-size="12.5" font-weight="700" fill="#15803d" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(1,4) v2 Сумма=150</text>
+<text x="242" y="272" font-size="12" font-weight="400" fill="#15803d" text-anchor="start" >новая версия</text>
+<path d="M 190 252 C 210 252, 215 252, 236 252" stroke="#6b7280" stroke-width="1.2" fill="none" marker-end="url(#g)"/>
+<line x1="124" y1="156" x2="124" y2="212" stroke="#2563eb" stroke-width="1.2" marker-end="url(#b)"/>
+<line x1="324" y1="156" x2="324" y2="212" stroke="#ea580c" stroke-width="1.5" marker-end="url(#o)"/>
+<text x="32" y="316" font-size="12.5" font-weight="400" fill="#7c2d12" text-anchor="start" >На странице 0 нет места → новая версия на другой</text>
+<text x="32" y="334" font-size="12.5" font-weight="400" fill="#7c2d12" text-anchor="start" >странице, у неё новый адрес (ctid).</text>
+<text x="32" y="352" font-size="12.5" font-weight="400" fill="#7c2d12" text-anchor="start" >Индексы ссылаются на ctid → в каждый индекс</text>
+<text x="32" y="370" font-size="12.5" font-weight="400" fill="#7c2d12" text-anchor="start" >добавляется запись, даже в индекс по Дате, которая</text>
+<text x="32" y="388" font-size="12.5" font-weight="400" fill="#7c2d12" text-anchor="start" >не менялась. Старые записи ждут VACUUM → bloat.</text>
+<rect x="464" y="84" width="184" height="72" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="474" y="101" font-size="12" font-weight="700" fill="#1e3a8a" text-anchor="start" >индекс по Ссылке</text>
+<text x="474" y="121" font-size="12.5" font-weight="400" fill="#1e3a8a" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">01    → (0,1)</text>
+<text x="474" y="144" font-size="12" font-weight="700" fill="#15803d" text-anchor="start" >без изменений</text>
+<rect x="664" y="84" width="184" height="72" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<text x="674" y="101" font-size="12" font-weight="700" fill="#1e3a8a" text-anchor="start" >индекс по Дате</text>
+<text x="674" y="121" font-size="12.5" font-weight="400" fill="#1e3a8a" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">05.03 → (0,1)</text>
+<text x="674" y="144" font-size="12" font-weight="700" fill="#15803d" text-anchor="start" >без изменений</text>
+
+<rect x="464" y="214" width="384" height="84" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
+<text x="474" y="288" font-size="12" font-weight="700" fill="#374151" text-anchor="start" >куча: страница 0 (есть свободное место — fillfactor)</text>
+<text x="474" y="256" font-size="12.5" font-weight="400" fill="#9ca3af" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(0,1) v1 100</text>
+<line x1="474" y1="252" x2="568" y2="252" stroke="#9ca3af"/>
+<line x1="580" y1="252" x2="640" y2="252" stroke="#16a34a" stroke-width="2" marker-end="url(#g)"/>
+<text x="610" y="246" font-size="11" font-weight="400" fill="#15803d" text-anchor="middle" >HOT-цепочка</text>
+<text x="648" y="256" font-size="12.5" font-weight="700" fill="#15803d" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">(0,2) v2 150 heap-only</text>
+<text x="474" y="268" font-size="11" font-weight="400" fill="#6b7280" text-anchor="start" >голова цепочки</text>
+<line x1="556" y1="156" x2="505" y2="238" stroke="#2563eb" stroke-width="1.2" marker-end="url(#b)"/>
+<line x1="700" y1="156" x2="520" y2="238" stroke="#2563eb" stroke-width="1.2" marker-end="url(#b)"/>
+<text x="464" y="328" font-size="12.5" font-weight="400" fill="#14532d" text-anchor="start" >Условия: ни одна индексированная колонка не изменилась</text>
+<text x="464" y="346" font-size="12.5" font-weight="400" fill="#14532d" text-anchor="start" >и на той же странице есть место.</text>
+<text x="464" y="364" font-size="12.5" font-weight="400" fill="#14532d" text-anchor="start" >Индекс указывает на голову цепочки, чтение идёт</text>
+<text x="464" y="382" font-size="12.5" font-weight="400" fill="#14532d" text-anchor="start" >по цепочке до видимой версии. Мёртвые версии убирает</text>
+<text x="464" y="400" font-size="12.5" font-weight="400" fill="#14532d" text-anchor="start" >внутристраничная очистка — без VACUUM и без индексов.</text>
+</svg>

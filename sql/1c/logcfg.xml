@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Технологический журнал 1С: медленные запросы к СУБД с планами и контекстом кода.
+    Методичка: docs/06-obsluzhivanie-diagnostika.md, раздел 6.2
+
+    Куда положить: каталог conf платформы на сервере 1С
+    (например, C:\Program Files\1cv8\conf\logcfg.xml). Подхватывается без перезапуска (~1 мин).
+
+    Единицы duration:
+      - платформа 8.3 — микросекунды: 1000000 = 1 секунда;
+      - платформа 8.2 — десятитысячные доли секунды: 10000 = 1 секунда.
+    Проверьте по документации своей версии платформы.
+
+    <plansql/> добавляет заметную нагрузку: включайте на время диагностики и с отбором по длительности.
+    Не забудьте выключить журнал после диагностики (удалить или переименовать файл).
+-->
+<config xmlns="http://v8.1c.ru/v8/tech-log">
+    <log location="C:\v8logs\slow_sql" history="24">
+        <!-- MS SQL Server: запросы дольше 1 секунды -->
+        <event>
+            <eq property="name" value="DBMSSQL"/>
+            <ge property="duration" value="1000000"/>
+        </event>
+        <!-- PostgreSQL: запросы дольше 1 секунды -->
+        <event>
+            <eq property="name" value="DBPOSTGRS"/>
+            <ge property="duration" value="1000000"/>
+        </event>
+        <!-- Ожидания на управляемых блокировках 1С — часто идут рядом с медленными запросами -->
+        <event>
+            <eq property="name" value="TLOCK"/>
+            <ge property="duration" value="1000000"/>
+        </event>
+        <!-- все свойства событий, включая Sql, Context, planSQLText -->
+        <property name="all"/>
+    </log>
+    <!-- собирать планы запросов (свойство planSQLText) -->
+    <plansql/>
+</config>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="360" viewBox="0 0 880 360" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker></defs>
+<rect x="0.5" y="0.5" width="879" height="359" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="30" font-size="17" font-weight="700" fill="#111827">Index Seek на секционированной таблице (выровненный индекс)</text>
+<rect x="16" y="48" width="848" height="140" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+<text x="32" y="76" font-size="13" fill="#111827" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">WHERE SaleDate >= '2024-02-01'</text>
+<text x="32" y="94" font-size="13" fill="#111827" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">  AND SaleDate &lt;  '2024-03-01'</text>
+<text x="32" y="112" font-size="13" fill="#111827" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">  AND SaleID = 42</text>
+<text x="32" y="140" font-size="13" fill="#15803d" font-weight="700">Отсечение секций: 1 Seek</text>
+<text x="32" y="158" font-size="13" fill="#15803d" font-weight="400">Actual Partition Count = 1</text>
+<polygon points="520,62 470,132 570,132" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.5" opacity="0.6"/>
+<rect x="470" y="142" width="100" height="30" rx="5" fill="#ffffff" stroke="#d1d5db"/>
+<text x="520" y="162" font-size="12" text-anchor="middle" fill="#9ca3af">Январь</text>
+<polygon points="650,62 600,132 700,132" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" opacity="1"/>
+<line x1="650" y1="60" x2="656" y2="124" stroke="#ea580c" stroke-width="3" marker-end="url(#a)"/>
+<rect x="600" y="142" width="100" height="30" rx="5" fill="#ffffff" stroke="#2563eb"/>
+<text x="650" y="162" font-size="12" text-anchor="middle" fill="#111827">Февраль</text>
+<polygon points="780,62 730,132 830,132" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.5" opacity="0.6"/>
+<rect x="730" y="142" width="100" height="30" rx="5" fill="#ffffff" stroke="#d1d5db"/>
+<text x="780" y="162" font-size="12" text-anchor="middle" fill="#9ca3af">Март</text>
+<rect x="16" y="204" width="848" height="140" rx="10" fill="#fff7ed" stroke="#fed7aa"/>
+<text x="32" y="232" font-size="13" fill="#111827" font-family="Consolas, 'DejaVu Sans Mono', monospace" xml:space="preserve">WHERE SaleID = 42</text>
+<text x="32" y="296" font-size="13" fill="#c2410c" font-weight="700">Отсечения нет: Seek в каждой секции</text>
+<text x="32" y="314" font-size="13" fill="#c2410c" font-weight="400">Scan count = 3; при 36 секциях — 36 спусков</text>
+<text x="32" y="332" font-size="13" fill="#c2410c" font-weight="400">по деревьям вместо одного</text>
+<polygon points="520,218 470,288 570,288" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" opacity="1"/>
+<line x1="520" y1="216" x2="526" y2="280" stroke="#ea580c" stroke-width="3" marker-end="url(#a)"/>
+<rect x="470" y="298" width="100" height="30" rx="5" fill="#ffffff" stroke="#2563eb"/>
+<text x="520" y="318" font-size="12" text-anchor="middle" fill="#111827">Январь</text>
+<polygon points="650,218 600,288 700,288" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" opacity="1"/>
+<line x1="650" y1="216" x2="656" y2="280" stroke="#ea580c" stroke-width="3" marker-end="url(#a)"/>
+<rect x="600" y="298" width="100" height="30" rx="5" fill="#ffffff" stroke="#2563eb"/>
+<text x="650" y="318" font-size="12" text-anchor="middle" fill="#111827">Февраль</text>
+<polygon points="780,218 730,288 830,288" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" opacity="1"/>
+<line x1="780" y1="216" x2="786" y2="280" stroke="#ea580c" stroke-width="3" marker-end="url(#a)"/>
+<rect x="730" y="298" width="100" height="30" rx="5" fill="#ffffff" stroke="#2563eb"/>
+<text x="780" y="318" font-size="12" text-anchor="middle" fill="#111827">Март</text>
+</svg>
