@@ -151,8 +151,6 @@ ALTER PARTITION FUNCTION pfOrders() SPLIT RANGE ('2024-05-01');
 2. **Пустые секции на обоих краях** — гарантия безопасных `SPLIT` и `MERGE`. Новую границу добавляют **заранее**, пока данные нового периода ещё не пришли.
 3. **Все индексы выровнены** — иначе `SWITCH` не сработает.
 
-Полный скрипт с проверками — [sql/mssql/06_partitioning_sliding_window.sql](../sql/mssql/06_partitioning_sliding_window.sql).
-
 ---
 
 ## 4.4. Глобальные и локальные индексы при секционировании. Что есть в MS SQL и PostgreSQL

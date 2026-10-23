@@ -315,7 +315,7 @@ FROM pgstatindex('public.ix_documents_date');
 - `avg_leaf_density` индекса ниже ~50–60% (свежий B-tree — около 90%, это его fillfactor) → индекс раздут;
 - `leaf_fragmentation` выше ~20–30% → индекс фрагментирован.
 
-Без расширения число мёртвых строк видно в `pg_stat_user_tables.n_dead_tup`. Скрипты — [sql/postgresql/02_bloat_pgstattuple.sql](../sql/postgresql/02_bloat_pgstattuple.sql).
+Без расширения число мёртвых строк видно в `pg_stat_user_tables.n_dead_tup`.
 
 > **Запомнить:** bloat — «пусто внутри страниц» (таблицы и индексы); фрагментация — «страницы не по порядку» (B-tree). Инструмент — `pgstattuple` / `pgstatindex`.
 

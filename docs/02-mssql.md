@@ -215,8 +215,6 @@ ORDER BY ips.page_count DESC;
 - Индексы меньше ~1000 страниц обычно не обслуживают: эффекта нет.
 - Columnstore оценивается иначе: доля **удалённых строк** в группах строк (`sys.dm_db_column_store_row_group_physical_stats`).
 
-Готовый скрипт — [sql/mssql/03_fragmentation.sql](../sql/mssql/03_fragmentation.sql).
-
 ### REORGANIZE и REBUILD
 
 | | `ALTER INDEX ... REORGANIZE` | `ALTER INDEX ... REBUILD` |
@@ -271,7 +269,7 @@ ORDER BY ips.page_count DESC;
 - Строка появляется, только когда к индексу было хоть одно обращение. Индекса нет в DMV → им не пользовались ни разу с запуска.
 - Решение «удалить индекс» принимают только по статистике за **полный бизнес-цикл** (месяц, закрытие квартала, годовые отчёты).
 
-**Пример: кандидаты на удаление** — много обновлений, мало чтений ([скрипт целиком](../sql/mssql/01_index_usage.sql)):
+**Пример: кандидаты на удаление** — много обновлений, мало чтений:
 
 ```sql
 SELECT OBJECT_NAME(i.object_id) AS table_name, i.name AS index_name,
@@ -302,8 +300,6 @@ ORDER BY writes DESC, reads ASC;
 ```
 avg_total_user_cost × avg_user_impact × (user_seeks + user_scans)
 ```
-
-Скрипт — [sql/mssql/02_missing_indexes.sql](../sql/mssql/02_missing_indexes.sql).
 
 ### Ограничения рекомендаций (главное для ответа)
 

@@ -28,7 +28,7 @@ DBCC FREEPROCCACHE;
 ```
 `sp_updatestats` проходит по всем таблицам, но обновляет только статистику, где были изменения. Полное `WITH FULLSCAN` по всей базе точнее, но на больших базах может не уложиться в окно.
 
-**Индексы — выборочно** (скрипт целиком: [sql/mssql/04_index_maintenance.sql](../sql/mssql/04_index_maintenance.sql)):
+**Индексы — выборочно:**
 ```sql
 -- REORGANIZE для умеренной фрагментации, REBUILD для сильной, маленькие пропускаем
 ALTER INDEX [имя] ON [таблица] REORGANIZE;
@@ -111,7 +111,7 @@ flowchart LR
 
 ### 1. Технологический журнал 1С
 
-Работает с любой СУБД и сразу связывает SQL с кодом 1С. Пример `logcfg.xml` ([полный файл](../sql/1c/logcfg.xml)):
+Работает с любой СУБД и сразу связывает SQL с кодом 1С. Пример `logcfg.xml`:
 
 ```xml
 <config xmlns="http://v8.1c.ru/v8/tech-log">
@@ -159,11 +159,11 @@ ALTER EVENT SESSION slow_queries ON SERVER STATE = START;
 - План — событие `query_post_execution_showplan` (дорогое) или по `plan_handle` из `sys.dm_exec_query_stats` + `sys.dm_exec_query_plan`.
 - **Query Store** (SQL Server 2016+) хранит историю запросов, их статистику и планы — удобно видеть, когда план «испортился».
 - **Profiler:** события `RPC:Completed`, `SQL:BatchCompleted` (колонки `Duration`, `CPU`, `Reads`) и `Showplan XML Statistics Profile`; сортируем по `Duration`, план — в событии рядом.
-- Без трассировки — топ запросов из кэша планов: [sql/mssql/05_top_queries.sql](../sql/mssql/05_top_queries.sql).
+- Без трассировки — топ запросов из кэша планов: `sys.dm_exec_query_stats` + `sys.dm_exec_sql_text` + `sys.dm_exec_query_plan`.
 
 ### 4. PostgreSQL
 
-- `pg_stat_statements` — топ по `total_exec_time`, `mean_exec_time`, `shared_blks_read` ([3.7](03-postgresql.md), [скрипт](../sql/postgresql/03_top_queries.sql)).
+- `pg_stat_statements` — топ по `total_exec_time`, `mean_exec_time`, `shared_blks_read` ([3.7](03-postgresql.md)).
 - `log_min_duration_statement = 1000` — медленные запросы в лог; `auto_explain` — с планами.
 - `EXPLAIN (ANALYZE, BUFFERS)` над найденным запросом:
   - `Seq Scan on _accumrgt1234` — индекс не используется;
@@ -175,7 +175,7 @@ ALTER EVENT SESSION slow_queries ON SERVER STATE = START;
 
 ### 5. Физическое имя → объект 1С
 
-`ПолучитьСтруктуруХраненияБазыДанных()` — см. [5.1](05-1c.md#как-узнать-физические-имена-таблиц-и-индексов) и [готовый код](../sql/1c/storage_structure.bsl). В ЦУП — автоматически.
+`ПолучитьСтруктуруХраненияБазыДанных()` — см. [5.1](05-1c.md#как-узнать-физические-имена-таблиц-и-индексов). В ЦУП — автоматически.
 
 > **Запомнить:** поймать (ТЖ / ЦУП / XE / pg_stat_statements) → посмотреть план (`<plansql/>` / showplan / `EXPLAIN ANALYZE`) → перевести имена в метаданные (`ПолучитьСтруктуруХраненияБазыДанных`).
 

@@ -10,15 +10,12 @@
 
 Вопросы из примеров аттестации помечены **★**.
 
-![Устройство B-дерева](images/btree.svg)
-
 ---
 
 ## Как пользоваться
 
 1. **Первый проход** — читать главы по порядку: каждая следующая опирается на предыдущую.
 2. **Повторение** — [шпаргалка](docs/07-shpargalka.md): все короткие ответы, сравнительная таблица MS SQL / PostgreSQL, числа и словарик.
-3. **Практика** — [скрипты](sql/) для MS SQL и PostgreSQL: запустить на тестовой базе и посмотреть на свои индексы.
 
 ---
 
@@ -75,39 +72,12 @@
 
 ---
 
-## Скрипты
-
-| Файл | Что делает |
-|---|---|
-| [sql/mssql/01_index_usage.sql](sql/mssql/01_index_usage.sql) | Использование индексов, кандидаты на удаление |
-| [sql/mssql/02_missing_indexes.sql](sql/mssql/02_missing_indexes.sql) | Недостающие индексы с оценкой выгоды |
-| [sql/mssql/03_fragmentation.sql](sql/mssql/03_fragmentation.sql) | Фрагментация и плотность страниц |
-| [sql/mssql/04_index_maintenance.sql](sql/mssql/04_index_maintenance.sql) | Выборочное обслуживание индексов и статистики |
-| [sql/mssql/05_top_queries.sql](sql/mssql/05_top_queries.sql) | Тяжёлые запросы из кэша планов |
-| [sql/mssql/06_partitioning_sliding_window.sql](sql/mssql/06_partitioning_sliding_window.sql) | Секционирование и скользящее окно |
-| [sql/postgresql/01_unused_indexes.sql](sql/postgresql/01_unused_indexes.sql) | Неиспользуемые и дублирующиеся индексы |
-| [sql/postgresql/02_bloat_pgstattuple.sql](sql/postgresql/02_bloat_pgstattuple.sql) | Раздувание и фрагментация (`pgstattuple`) |
-| [sql/postgresql/03_top_queries.sql](sql/postgresql/03_top_queries.sql) | Тяжёлые запросы (`pg_stat_statements`), активные запросы |
-| [sql/postgresql/04_vacuum_hot.sql](sql/postgresql/04_vacuum_hot.sql) | Мёртвые строки, autovacuum, доля HOT, долгие транзакции |
-| [sql/postgresql/05_invalid_indexes_reindex.sql](sql/postgresql/05_invalid_indexes_reindex.sql) | Невалидные индексы, `REINDEX CONCURRENTLY` |
-| [sql/postgresql/06_partitioning.sql](sql/postgresql/06_partitioning.sql) | Декларативное секционирование и уникальность |
-| [sql/1c/logcfg.xml](sql/1c/logcfg.xml) | Технологический журнал: медленные запросы с планами |
-| [sql/1c/storage_structure.bsl](sql/1c/storage_structure.bsl) | Физические имена таблиц и индексов → метаданные |
-
-Скрипты только читают системные представления, кроме явно помеченных блоков обслуживания. Запускайте на тестовой базе.
-
----
-
 ## Структура репозитория
 
 ```
 ├── README.md
 ├── docs/            главы методички, шпаргалка, источники
-├── images/          схемы (SVG)
-└── sql/
-    ├── mssql/       скрипты для MS SQL Server
-    ├── postgresql/  скрипты для PostgreSQL
-    └── 1c/          технологический журнал и код 1С
+└── images/          схемы (SVG)
 ```
 
 ---
