@@ -50,6 +50,9 @@
 - [pgstattuple](https://postgrespro.ru/docs/postgresql/17/pgstattuple)
 - [pg_stat_statements](https://postgrespro.ru/docs/postgresql/17/pgstatstatements)
 - [REINDEX](https://postgrespro.ru/docs/postgresql/17/sql-reindex)
+- [Типы индексов](https://postgrespro.ru/docs/postgresql/17/indexes-types), [GiST](https://postgrespro.ru/docs/postgresql/17/gist), [SP-GiST](https://postgrespro.ru/docs/postgresql/17/spgist), [GIN](https://postgrespro.ru/docs/postgresql/17/gin), [BRIN](https://postgrespro.ru/docs/postgresql/17/brin) — устройство встроенных методов доступа (к [3.1](03-postgresql.md))
+- [pageinspect](https://postgrespro.ru/docs/postgresql/17/pageinspect) — функции для просмотра страниц индексов, которые используют скрипты `sql/postgresql/`
+- [pg_trgm](https://postgrespro.ru/docs/postgresql/17/pgtrgm) — триграммы
 - Цикл Е. Рогова «Индексы в PostgreSQL» на Хабре — все части (B-tree, Hash, GiST, SP-GiST, GIN, BRIN и др.), начиная с [первой](https://habr.com/ru/companies/postgrespro/articles/326096/)
 
 ### Обе СУБД

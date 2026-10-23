@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="500" viewBox="0 0 880 500" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/>
+    </marker>
+    <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#ea580c" stroke-width="1.5"/>
+    </pattern>
+  </defs>
+  <rect x="0.5" y="0.5" width="879" height="499" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="24" y="32" font-size="17" font-weight="700" fill="#111827">GiST (R-дерево для точек): узел = прямоугольник, охватывающий всё поддерево</text>
+
+  <!-- ===== left: plane ===== -->
+  <text x="30" y="62" font-size="12" fill="#6b7280" font-weight="600">Плоскость: точки и ограничивающие прямоугольники</text>
+  <rect x="30" y="72" width="380" height="300" fill="#f9fafb" stroke="#d1d5db"/>
+
+  <!-- R1, R2 (root level) -->
+  <rect x="44" y="86" width="210" height="190" fill="#dbeafe" fill-opacity="0.45" stroke="#2563eb" stroke-width="2"/>
+  <text x="50" y="102" font-size="13" font-weight="700" fill="#1d4ed8">R1</text>
+  <rect x="190" y="150" width="206" height="208" fill="#dcfce7" fill-opacity="0.45" stroke="#16a34a" stroke-width="2"/>
+  <text x="378" y="352" font-size="13" font-weight="700" fill="#15803d">R2</text>
+
+  <!-- children of R1 -->
+  <rect x="56" y="110" width="90" height="70" fill="none" stroke="#2563eb" stroke-dasharray="4 3"/>
+  <text x="60" y="124" font-size="11" fill="#1d4ed8">a</text>
+  <rect x="150" y="190" width="96" height="78" fill="none" stroke="#2563eb" stroke-dasharray="4 3"/>
+  <text x="154" y="204" font-size="11" fill="#1d4ed8">b</text>
+  <!-- children of R2 -->
+  <rect x="200" y="160" width="110" height="80" fill="none" stroke="#16a34a" stroke-dasharray="4 3"/>
+  <text x="296" y="174" font-size="11" fill="#15803d">c</text>
+  <rect x="270" y="260" width="116" height="88" fill="none" stroke="#16a34a" stroke-dasharray="4 3"/>
+  <text x="372" y="274" font-size="11" fill="#15803d">d</text>
+
+  <!-- points -->
+  <g fill="#1f2937">
+    <circle cx="70" cy="140" r="3.5"/><circle cx="100" cy="125" r="3.5"/><circle cx="130" cy="165" r="3.5"/>
+    <circle cx="165" cy="215" r="3.5"/><circle cx="230" cy="255" r="3.5"/><circle cx="190" cy="240" r="3.5"/>
+    <circle cx="215" cy="178" r="3.5"/><circle cx="260" cy="200" r="3.5"/><circle cx="300" cy="228" r="3.5"/>
+    <circle cx="290" cy="290" r="3.5"/><circle cx="340" cy="320" r="3.5"/><circle cx="375" cy="282" r="3.5"/>
+  </g>
+
+  <!-- query box -->
+  <rect x="205" y="200" width="60" height="50" fill="url(#hatch)" fill-opacity="0.6" stroke="#ea580c" stroke-width="2.5"/>
+  <text x="206" y="196" font-size="11" font-weight="700" fill="#c2410c">запрос</text>
+
+  <text x="30" y="392" font-size="12" fill="#374151">Прямоугольники R1 и R2 <tspan font-weight="700">перекрываются</tspan> — область запроса</text>
+  <text x="30" y="408" font-size="12" fill="#374151">попадает в оба, поэтому спуск идёт в <tspan font-weight="700">обе ветви</tspan>.</text>
+
+  <!-- ===== right: tree ===== -->
+  <text x="460" y="62" font-size="12" fill="#6b7280" font-weight="600">То же самое как дерево страниц</text>
+
+  <rect x="580" y="78" width="150" height="40" rx="6" fill="#f3f4f6" stroke="#6b7280"/>
+  <text x="655" y="103" font-size="14" text-anchor="middle" font-weight="700" fill="#111827">R1 │ R2</text>
+  <text x="742" y="103" font-size="11" fill="#6b7280">корень</text>
+
+  <rect x="470" y="160" width="140" height="40" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="540" y="185" font-size="14" text-anchor="middle" font-weight="700" fill="#1d4ed8">a │ b</text>
+  <rect x="700" y="160" width="140" height="40" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="770" y="185" font-size="14" text-anchor="middle" font-weight="700" fill="#15803d">c │ d</text>
+
+  <g font-size="11" text-anchor="middle" fill="#1f2937">
+    <rect x="460" y="250" width="70" height="44" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="495" y="268">лист a</text><text x="495" y="284">3 точки</text>
+    <rect x="545" y="250" width="70" height="44" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="580" y="268">лист b</text><text x="580" y="284">3 точки</text>
+    <rect x="690" y="250" width="70" height="44" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="725" y="268">лист c</text><text x="725" y="284">3 точки</text>
+    <rect x="775" y="250" width="70" height="44" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="810" y="268">лист d</text><text x="810" y="284">3 точки</text>
+  </g>
+
+  <g stroke="#ea580c" stroke-width="2" fill="none">
+    <line x1="625" y1="118" x2="548" y2="158" marker-end="url(#arrO)"/>
+    <line x1="685" y1="118" x2="762" y2="158" marker-end="url(#arrO)"/>
+    <line x1="560" y1="200" x2="578" y2="248" marker-end="url(#arrO)"/>
+    <line x1="750" y1="200" x2="728" y2="248" marker-end="url(#arrO)"/>
+  </g>
+  <g stroke="#cbd5e1" stroke-width="1.5" fill="none" stroke-dasharray="4 3">
+    <line x1="515" y1="200" x2="497" y2="248"/>
+    <line x1="790" y1="200" x2="808" y2="248"/>
+  </g>
+  <text x="470" y="318" font-size="11" fill="#6b7280">на листьях: точка + ctid строки таблицы</text>
+
+  <g font-size="12" fill="#374151">
+    <text x="460" y="350"><tspan font-weight="700" fill="#c2410c">Оранжевым</tspan> — путь запроса: из корня в R1 и R2,</text>
+    <text x="460" y="366">дальше только в b и c (a и d с областью не пересекаются).</text>
+    <text x="460" y="392">В B-tree диапазоны узлов <tspan font-weight="700">не пересекаются</tspan> — путь один.</text>
+    <text x="460" y="408">В GiST узлы могут перекрываться — путей бывает несколько.</text>
+  </g>
+
+  <!-- bottom notes -->
+  <line x1="24" y1="428" x2="856" y2="428" stroke="#e5e7eb"/>
+  <g font-size="12.5" fill="#374151">
+    <text x="30" y="450"><tspan font-weight="700">Ближайшие соседи (KNN):</tspan> обходить узлы в порядке минимального расстояния до точки — первыми найдутся ближайшие,</text>
+    <text x="30" y="468"><tspan font-family="ui-monospace, Consolas, monospace">ORDER BY pos &lt;-&gt; точка LIMIT 5</tspan> читает несколько страниц вместо всей таблицы.</text>
+    <text x="30" y="488"><tspan font-weight="700">Каркас общий:</tspan> что такое «охватывающий ключ» и «пересекается», задаёт класс операторов (точки, диапазоны дат, тексты, …).</text>
+  </g>
+</svg>

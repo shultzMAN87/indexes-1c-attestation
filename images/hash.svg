@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="470" viewBox="0 0 880 470" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/>
+    </marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="879" height="469" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="24" y="32" font-size="17" font-weight="700" fill="#111827">Hash-индекс: значение → хеш-код → номер корзины</text>
+
+  <!-- column headers -->
+  <g font-size="12" fill="#6b7280" font-weight="600">
+    <text x="40" y="66">Значение ключа</text>
+    <text x="250" y="66">Хеш-функция</text>
+    <text x="400" y="66">32-битный код</text>
+    <text x="560" y="66">Корзины (страницы индекса)</text>
+  </g>
+
+  <!-- values -->
+  <g font-size="13" fill="#1f2937">
+    <rect x="30" y="84" width="170" height="34" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="115" y="106" text-anchor="middle">'Иванов'</text>
+    <rect x="30" y="134" width="170" height="34" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="115" y="156" text-anchor="middle" font-weight="600">'Петров'  ← ищем</text>
+    <rect x="30" y="184" width="170" height="34" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="115" y="206" text-anchor="middle">'Сидоров'</text>
+    <rect x="30" y="234" width="170" height="34" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="115" y="256" text-anchor="middle">'https://…' (100 байт)</text>
+  </g>
+
+  <!-- hash function -->
+  <rect x="240" y="120" width="120" height="110" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="300" y="168" font-size="14" font-weight="700" text-anchor="middle" fill="#4c1d95">hash()</text>
+  <text x="300" y="188" font-size="11" text-anchor="middle" fill="#5b21b6">hashtext,</text>
+  <text x="300" y="202" font-size="11" text-anchor="middle" fill="#5b21b6">hashint8 …</text>
+  <g stroke="#94a3b8" stroke-width="1.5">
+    <line x1="200" y1="101" x2="238" y2="140" marker-end="url(#arr)"/>
+    <line x1="200" y1="201" x2="238" y2="190" marker-end="url(#arr)"/>
+    <line x1="200" y1="251" x2="238" y2="210" marker-end="url(#arr)"/>
+  </g>
+  <line x1="200" y1="151" x2="238" y2="165" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+
+  <!-- codes -->
+  <g font-size="12" font-family="ui-monospace, Consolas, monospace" fill="#1f2937">
+    <rect x="392" y="84" width="130" height="34" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="457" y="106" text-anchor="middle">…0110 1101 → 1</text>
+    <rect x="392" y="134" width="130" height="34" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="457" y="156" text-anchor="middle">…1011 0110 → 2</text>
+    <rect x="392" y="184" width="130" height="34" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="457" y="206" text-anchor="middle">…0001 1100 → 0</text>
+    <rect x="392" y="234" width="130" height="34" rx="6" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="457" y="256" text-anchor="middle">…0100 1001 → 1</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="1.5">
+    <line x1="360" y1="140" x2="390" y2="104" marker-end="url(#arr)"/>
+    <line x1="360" y1="190" x2="390" y2="200" marker-end="url(#arr)"/>
+    <line x1="360" y1="210" x2="390" y2="248" marker-end="url(#arr)"/>
+  </g>
+  <line x1="360" y1="165" x2="390" y2="152" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+  <text x="457" y="290" font-size="11" text-anchor="middle" fill="#6b7280">номер корзины =</text>
+  <text x="457" y="304" font-size="11" text-anchor="middle" fill="#6b7280">младшие биты кода (маска)</text>
+
+  <!-- buckets -->
+  <g font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#14532d">
+    <rect x="560" y="80" width="150" height="46" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="570" y="97" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="700">корзина 0</text>
+    <text x="570" y="115">код…1100 → (12,4)</text>
+
+    <rect x="560" y="136" width="150" height="62" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="570" y="153" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="700">корзина 1</text>
+    <text x="570" y="170">код…1101 → (3,7)</text>
+    <text x="570" y="187">код…1001 → (88,2)</text>
+
+    <rect x="560" y="208" width="150" height="62" rx="6" fill="#dcfce7" stroke="#ea580c" stroke-width="2.5"/>
+    <text x="570" y="225" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="700">корзина 2</text>
+    <text x="570" y="242">код…0110 → (41,1)</text>
+    <text x="570" y="259">код…1110 → (9,3)</text>
+
+    <rect x="560" y="280" width="150" height="46" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="570" y="297" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="700">корзина 3</text>
+    <text x="570" y="315">…</text>
+
+    <!-- overflow -->
+    <rect x="730" y="208" width="130" height="62" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-dasharray="4 3"/>
+    <text x="740" y="225" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="700" fill="#713f12">переполнение</text>
+    <text x="740" y="242" fill="#713f12">код…0110 → (77,5)</text>
+    <text x="740" y="259" fill="#713f12">…</text>
+  </g>
+  <line x1="710" y1="239" x2="728" y2="239" stroke="#ca8a04" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M522,151 C540,151 540,239 558,239" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+
+  <!-- notes -->
+  <g font-size="13" fill="#374151">
+    <text x="30" y="360"><tspan font-weight="700" fill="#c2410c">Поиск 'Петров':</tspan> вычислить хеш → по маске получить номер корзины 2 → прочитать её (и страницы переполнения)</text>
+    <text x="30" y="380">→ взять записи с тем же кодом → сходить в таблицу по ctid и <tspan font-weight="700">перепроверить значение</tspan> (у разных строк код может совпасть).</text>
+    <text x="30" y="408"><tspan font-weight="700" fill="#15803d">Плюс:</tspan> в индексе 4 байта кода вместо самого значения — для длинных строк индекс в разы меньше B-tree.</text>
+    <text x="30" y="428"><tspan font-weight="700" fill="#b91c1c">Минус:</tspan> соседние значения разлетаются по разным корзинам — порядка нет: ни диапазонов, ни ORDER BY, ни LIKE 'abc%'.</text>
+    <text x="30" y="448">Растёт таблица — число корзин удваивается постепенно (корзины делятся по одной), без перестройки всего индекса.</text>
+  </g>
+</svg>

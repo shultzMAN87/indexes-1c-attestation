@@ -44,7 +44,7 @@
 - 2.8. Индексы по выражениям: вычисляемые столбцы и индексированные представления
 
 ### [Глава 3. PostgreSQL](docs/03-postgresql.md)
-- 3.1. Типы индексов: B-tree, Hash, GiST, SP-GiST, GIN, BRIN
+- 3.1. Типы индексов: B-tree, Hash, GiST, SP-GiST, GIN, BRIN — устройство, схемы, скрипты
 - 3.2. Почему нет кластерного индекса и что делает `CLUSTER`
 - 3.3. MVCC, HOT-обновления и раздувание
 - 3.4. `fillfactor` для таблицы и индекса, отличия от MS SQL
@@ -89,8 +89,15 @@
 | Файл | Что делает | Раздел |
 |---|---|---|
 | [sql/mssql/01_columnstore_demo.sql](sql/mssql/01_columnstore_demo.sql) | Columnstore и rowstore на одних данных: размер, план, batch mode, группы строк и сегменты, segment elimination, deltastore | [2.5](docs/02-mssql.md#25-чем-columnstore-отличается-от-rowstore-и-для-каких-нагрузок-он-подходит) |
+| [sql/postgresql/00_index_types_overview.sql](sql/postgresql/00_index_types_overview.sql) | Какие типы индексов установлены, что умеет каждый, классы операторов | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
+| [sql/postgresql/01_btree.sql](sql/postgresql/01_btree.sql) | B-tree изнутри (`pageinspect`): уровни, `ctid` в листьях, дедупликация; Index / Index Only / Bitmap / Seq Scan | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
+| [sql/postgresql/02_hash.sql](sql/postgresql/02_hash.sql) | Hash: корзины и хеш-коды, размер против B-tree на длинных строках, что не умеет | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
+| [sql/postgresql/03_gist.sql](sql/postgresql/03_gist.sql) | GiST: ограничивающие прямоугольники, поиск в области, ближайшие соседи (KNN), `EXCLUDE` для броней | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
+| [sql/postgresql/04_spgist.sql](sql/postgresql/04_spgist.sql) | SP-GiST: дерево квадрантов и k-d дерево, префиксное дерево для строк, IP-подсети | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
+| [sql/postgresql/05_gin.sql](sql/postgresql/05_gin.sql) | GIN: массивы, JSONB (`jsonb_ops` и `jsonb_path_ops`), триграммы для `LIKE '%…%'`, полнотекстовый поиск, отложенный список | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
+| [sql/postgresql/06_brin.sql](sql/postgresql/06_brin.sql) | BRIN: сводки min/max, размер против B-tree, упорядоченная и перемешанная таблица, `minmax_multi` и `bloom` | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 
-Скрипты учебные: запускайте в отдельной тестовой базе, не в базе 1С.
+Скрипты учебные: запускайте в отдельной тестовой базе, не в базе 1С. Скрипты PostgreSQL проверены на PostgreSQL 16; используют расширения из стандартной поставки (`pageinspect`, `pg_trgm`, `btree_gist`).
 
 ---
 
@@ -101,7 +108,8 @@
 ├── docs/            главы методички, шпаргалка, источники
 ├── images/          схемы (SVG)
 └── sql/
-    └── mssql/       учебные скрипты для MS SQL Server
+    ├── mssql/       учебные скрипты для MS SQL Server
+    └── postgresql/  учебные скрипты для PostgreSQL
 ```
 
 ---

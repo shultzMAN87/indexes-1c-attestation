@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="500" viewBox="0 0 880 500" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/>
+    </marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="879" height="499" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="24" y="32" font-size="17" font-weight="700" fill="#111827">GIN — инвертированный индекс: «элемент → список строк, где он есть»</text>
+
+  <!-- ===== left: table ===== -->
+  <text x="30" y="62" font-size="12" fill="#6b7280" font-weight="600">Таблица (колонка tags — массив)</text>
+  <g font-size="13" fill="#1f2937">
+    <rect x="30" y="72" width="250" height="30" fill="#f3f4f6" stroke="#9ca3af"/>
+    <text x="42" y="92" font-weight="700">ctid</text><text x="110" y="92" font-weight="700">tags</text>
+    <rect x="30" y="102" width="250" height="34" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="42" y="124">(0,1)</text><text x="110" y="124">{хит, белый}</text>
+    <rect x="30" y="136" width="250" height="34" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="42" y="158">(0,2)</text><text x="110" y="158">{скидка, белый}</text>
+    <rect x="30" y="170" width="250" height="34" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="42" y="192">(0,3)</text><text x="110" y="192">{хит, чёрный}</text>
+    <rect x="30" y="204" width="250" height="34" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="42" y="226">(1,1)</text><text x="110" y="226">{хит, белый, eco}</text>
+  </g>
+  <text x="30" y="262" font-size="12" fill="#374151">Из каждого значения извлекаются <tspan font-weight="700">элементы</tspan> —</text>
+  <text x="30" y="278" font-size="12" fill="#374151">одна строка даёт несколько ключей индекса.</text>
+
+  <path d="M290,155 C320,155 320,155 345,155" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- ===== middle/right: index ===== -->
+  <text x="360" y="62" font-size="12" fill="#6b7280" font-weight="600">Индекс: B-дерево ключей → списки ctid (posting list / posting tree)</text>
+
+  <rect x="360" y="74" width="140" height="36" rx="6" fill="#f3f4f6" stroke="#6b7280"/>
+  <text x="430" y="97" font-size="12" text-anchor="middle" fill="#111827">дерево ключей</text>
+  <g stroke="#94a3b8" stroke-width="1.5">
+    <line x1="400" y1="110" x2="400" y2="122"/>
+    <line x1="400" y1="122" x2="400" y2="290"/>
+  </g>
+
+  <g font-size="13">
+    <!-- keys -->
+    <rect x="370" y="126" width="110" height="32" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="425" y="147" text-anchor="middle" fill="#1d4ed8">eco</text>
+    <rect x="370" y="166" width="110" height="32" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="425" y="187" text-anchor="middle" fill="#9a3412" font-weight="700">белый</text>
+    <rect x="370" y="206" width="110" height="32" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="425" y="227" text-anchor="middle" fill="#1d4ed8">скидка</text>
+    <rect x="370" y="246" width="110" height="32" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="425" y="267" text-anchor="middle" fill="#9a3412" font-weight="700">хит</text>
+    <rect x="370" y="286" width="110" height="32" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="425" y="307" text-anchor="middle" fill="#1d4ed8">чёрный</text>
+
+    <!-- posting lists -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#14532d">
+      <rect x="520" y="126" width="200" height="32" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+      <text x="532" y="147">(1,1)</text>
+      <rect x="520" y="166" width="200" height="32" rx="6" fill="#dcfce7" stroke="#ea580c" stroke-width="2"/>
+      <text x="532" y="187">(0,1) (0,2) (1,1)</text>
+      <rect x="520" y="206" width="200" height="32" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+      <text x="532" y="227">(0,2)</text>
+      <rect x="520" y="246" width="200" height="32" rx="6" fill="#dcfce7" stroke="#ea580c" stroke-width="2"/>
+      <text x="532" y="267">(0,1) (0,3) (1,1)</text>
+      <rect x="520" y="286" width="200" height="32" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+      <text x="532" y="307">(0,3)</text>
+    </g>
+  </g>
+  <g stroke="#94a3b8" stroke-width="1.5">
+    <line x1="480" y1="142" x2="518" y2="142" marker-end="url(#arr)"/>
+    <line x1="480" y1="222" x2="518" y2="222" marker-end="url(#arr)"/>
+    <line x1="480" y1="302" x2="518" y2="302" marker-end="url(#arr)"/>
+  </g>
+  <g stroke="#ea580c" stroke-width="2">
+    <line x1="480" y1="182" x2="518" y2="182" marker-end="url(#arrO)"/>
+    <line x1="480" y1="262" x2="518" y2="262" marker-end="url(#arrO)"/>
+  </g>
+  <text x="732" y="176" font-size="11" fill="#6b7280">список отсортирован</text>
+  <text x="732" y="190" font-size="11" fill="#6b7280">и сжат; длинный —</text>
+  <text x="732" y="204" font-size="11" fill="#6b7280">отдельное B-дерево</text>
+  <text x="732" y="218" font-size="11" fill="#6b7280">(posting tree)</text>
+
+  <!-- query -->
+  <rect x="360" y="336" width="490" height="62" rx="8" fill="#fff7ed" stroke="#ea580c"/>
+  <text x="372" y="358" font-size="13" fill="#9a3412"><tspan font-weight="700">Запрос</tspan> <tspan font-family="ui-monospace, Consolas, monospace">tags @&gt; '{хит, белый}'</tspan>: взять списки двух ключей</text>
+  <text x="372" y="378" font-size="13" fill="#9a3412">и <tspan font-weight="700">пересечь</tspan>: {(0,1),(0,2),(1,1)} ∩ {(0,1),(0,3),(1,1)} = <tspan font-weight="700">{(0,1),(1,1)}</tspan></text>
+  <text x="372" y="394" font-size="11.5" fill="#9a3412">→ битовая карта страниц → Bitmap Heap Scan с перепроверкой условия (Recheck)</text>
+
+  <!-- pending list -->
+  <rect x="30" y="300" width="300" height="98" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-dasharray="5 3"/>
+  <text x="42" y="322" font-size="13" font-weight="700" fill="#713f12">Отложенный список (fastupdate)</text>
+  <text x="42" y="342" font-size="12" fill="#713f12">Новая строка = записи во многие списки.</text>
+  <text x="42" y="358" font-size="12" fill="#713f12">Чтобы вставка была быстрой, записи копятся</text>
+  <text x="42" y="374" font-size="12" fill="#713f12">в неупорядоченном списке и переносятся</text>
+  <text x="42" y="390" font-size="12" fill="#713f12">в дерево пачкой (VACUUM, переполнение).</text>
+
+  <!-- bottom -->
+  <line x1="24" y1="418" x2="856" y2="418" stroke="#e5e7eb"/>
+  <g font-size="12.5" fill="#374151">
+    <text x="30" y="440"><tspan font-weight="700">Элементы бывают разные</tspan> — это задаёт класс операторов: элементы массива, ключи и значения jsonb,</text>
+    <text x="30" y="458">лексемы полнотекстового поиска (индексы → «индекс»), триграммы строки (pg_trgm: LIKE '%подстрока%').</text>
+    <text x="30" y="482"><tspan font-weight="700" fill="#15803d">Быстро</tspan> ищет «содержит элементы»; <tspan font-weight="700" fill="#b91c1c">медленно</tspan> обновляется; порядка значений нет — только Bitmap Scan, без ORDER BY.</text>
+  </g>
+</svg>

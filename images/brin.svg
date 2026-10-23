@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="480" viewBox="0 0 880 480" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="879" height="479" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="24" y="32" font-size="17" font-weight="700" fill="#111827">BRIN: одна сводка (min / max) на каждые 128 страниц таблицы</text>
+
+  <!-- ===== case 1 ===== -->
+  <text x="30" y="64" font-size="13" font-weight="700" fill="#15803d">Строки лежат в порядке времени (журнал, движения по датам) — correlation ≈ 1</text>
+
+  <text x="30" y="92" font-size="11" fill="#6b7280">индекс:</text>
+  <g font-size="11" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">
+    <rect x="90"  y="76" width="146" height="40" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="163" y="92" fill="#1d4ed8">01.01 … 02.01</text><text x="163" y="108" fill="#6b7280">блоки 0–127</text>
+    <rect x="246" y="76" width="146" height="40" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="319" y="92" fill="#1d4ed8">02.01 … 03.01</text><text x="319" y="108" fill="#6b7280">128–255</text>
+    <rect x="402" y="76" width="146" height="40" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="475" y="92" fill="#1d4ed8">…</text><text x="475" y="108" fill="#6b7280">…</text>
+    <rect x="558" y="76" width="146" height="40" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2.5"/>
+    <text x="631" y="92" fill="#9a3412" font-weight="700">09.06 … 10.06</text><text x="631" y="108" fill="#9a3412">20352–20479</text>
+    <rect x="714" y="76" width="146" height="40" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="787" y="92" fill="#1d4ed8">10.06 … 11.06</text><text x="787" y="108" fill="#6b7280">20480–20607</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="1.2">
+    <line x1="163" y1="116" x2="163" y2="136"/><line x1="319" y1="116" x2="319" y2="136"/>
+    <line x1="475" y1="116" x2="475" y2="136"/><line x1="631" y1="116" x2="631" y2="136"/>
+    <line x1="787" y1="116" x2="787" y2="136"/>
+  </g>
+  <text x="30" y="156" font-size="11" fill="#6b7280">таблица:</text>
+  <g>
+    <rect x="90"  y="138" width="146" height="30" fill="#e5e7eb" stroke="#9ca3af"/>
+    <rect x="246" y="138" width="146" height="30" fill="#e5e7eb" stroke="#9ca3af"/>
+    <rect x="402" y="138" width="146" height="30" fill="#e5e7eb" stroke="#9ca3af"/>
+    <rect x="558" y="138" width="146" height="30" fill="#fdba74" stroke="#ea580c" stroke-width="2"/>
+    <rect x="714" y="138" width="146" height="30" fill="#fdba74" stroke="#ea580c" stroke-width="2"/>
+  </g>
+  <g font-size="11" text-anchor="middle">
+    <text x="163" y="158" fill="#6b7280">пропуск</text><text x="319" y="158" fill="#6b7280">пропуск</text>
+    <text x="475" y="158" fill="#6b7280">пропуск</text>
+    <text x="631" y="158" fill="#7c2d12" font-weight="700">читаем все 128 стр.</text>
+    <text x="787" y="158" fill="#7c2d12" font-weight="700">читаем (граница)</text>
+  </g>
+  <text x="30" y="196" font-size="12.5" fill="#374151"><tspan font-weight="700" fill="#c2410c">Запрос</tspan> <tspan font-family="ui-monospace, Consolas, monospace">ts &gt;= '10.06' AND ts &lt; '11.06'</tspan>: подходят только диапазоны, у которых min…max пересекает 10.06.</text>
+  <text x="30" y="214" font-size="12.5" fill="#374151">Остальные пропускаются. Подходящие читаются <tspan font-weight="700">целиком</tspan>, каждая строка перепроверяется (Rows Removed by Index Recheck).</text>
+
+  <!-- ===== case 2 ===== -->
+  <line x1="24" y1="234" x2="856" y2="234" stroke="#e5e7eb"/>
+  <text x="30" y="260" font-size="13" font-weight="700" fill="#b91c1c">Те же данные, но строки перемешаны — correlation ≈ 0</text>
+
+  <text x="30" y="288" font-size="11" fill="#6b7280">индекс:</text>
+  <g font-size="11" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">
+    <rect x="90"  y="272" width="146" height="40" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="163" y="288" fill="#991b1b">01.01 … 31.12</text><text x="163" y="304" fill="#6b7280">блоки 0–127</text>
+    <rect x="246" y="272" width="146" height="40" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="319" y="288" fill="#991b1b">01.01 … 30.12</text><text x="319" y="304" fill="#6b7280">128–255</text>
+    <rect x="402" y="272" width="146" height="40" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="475" y="288" fill="#991b1b">02.01 … 31.12</text><text x="475" y="304" fill="#6b7280">…</text>
+    <rect x="558" y="272" width="146" height="40" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="631" y="288" fill="#991b1b">01.01 … 31.12</text><text x="631" y="304" fill="#6b7280">…</text>
+    <rect x="714" y="272" width="146" height="40" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="787" y="288" fill="#991b1b">01.01 … 29.12</text><text x="787" y="304" fill="#6b7280">…</text>
+  </g>
+  <text x="30" y="352" font-size="11" fill="#6b7280">таблица:</text>
+  <g>
+    <rect x="90"  y="334" width="146" height="30" fill="#fdba74" stroke="#ea580c"/>
+    <rect x="246" y="334" width="146" height="30" fill="#fdba74" stroke="#ea580c"/>
+    <rect x="402" y="334" width="146" height="30" fill="#fdba74" stroke="#ea580c"/>
+    <rect x="558" y="334" width="146" height="30" fill="#fdba74" stroke="#ea580c"/>
+    <rect x="714" y="334" width="146" height="30" fill="#fdba74" stroke="#ea580c"/>
+  </g>
+  <g font-size="11" text-anchor="middle" fill="#7c2d12" font-weight="700">
+    <text x="163" y="354">читаем</text><text x="319" y="354">читаем</text><text x="475" y="354">читаем</text>
+    <text x="631" y="354">читаем</text><text x="787" y="354">читаем</text>
+  </g>
+  <text x="30" y="390" font-size="12.5" fill="#374151">Каждый диапазон содержит даты почти за весь год — отбросить нечего. BRIN бесполезен, планировщик выберет Seq Scan.</text>
+
+  <!-- bottom -->
+  <line x1="24" y1="410" x2="856" y2="410" stroke="#e5e7eb"/>
+  <g font-size="12.5" fill="#374151">
+    <text x="30" y="432"><tspan font-weight="700" fill="#15803d">Плюс:</tspan> крошечный размер (килобайты вместо гигабайт B-tree), почти бесплатная вставка в конец.</text>
+    <text x="30" y="452"><tspan font-weight="700" fill="#b91c1c">Минус:</tspan> не находит отдельную строку — только отбрасывает лишние блоки; работает лишь при физической корреляции.</text>
+    <text x="30" y="472">Новые блоки получают сводку не сразу: VACUUM, brin_summarize_new_values() или параметр autosummarize.</text>
+  </g>
+</svg>
