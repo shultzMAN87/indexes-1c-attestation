@@ -59,7 +59,7 @@
 
   <rect x="360" y="234" width="496" height="74" rx="8" fill="#fefce8" stroke="#ca8a04"/>
   <text x="372" y="254" font-size="13" font-weight="700" fill="#a16207">ROW_OVERFLOW_DATA</text>
-  <text x="372" y="272" font-size="12" fill="#713f12">Запись не влезает в 8 060 байт из-за колонок <tspan font-family="ui-monospace, Consolas, monospace">nvarchar(n)</tspan>, <tspan font-family="ui-monospace, Consolas, monospace">varbinary(n)</tspan></tspan></text>
+  <text x="372" y="272" font-size="12" fill="#713f12">Запись не влезает в 8 060 байт из-за колонок <tspan font-family="ui-monospace, Consolas, monospace">nvarchar(n)</tspan>, <tspan font-family="ui-monospace, Consolas, monospace">varbinary(n)</tspan></text>
   <text x="372" y="288" font-size="12" fill="#713f12">(каждая ≤ 8 000 байт) → самые длинные переносятся сюда целиком,</text>
   <text x="372" y="303" font-size="12" fill="#713f12">в записи остаётся <tspan font-weight="700">указатель 24 байта</tspan>.</text>
 
