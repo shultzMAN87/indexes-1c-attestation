@@ -41,6 +41,9 @@
 - [Увеличенный размер ключа некластерного индекса в SQL Server 2016](https://learn.microsoft.com/en-us/archive/blogs/sqlserverstorageengine/increased-nonclustered-index-key-size-with-sql-server-2016)
 - [Создание фильтруемых индексов](https://learn.microsoft.com/ru-ru/sql/relational-databases/indexes/create-filtered-indexes)
 - [Сжатие данных](https://learn.microsoft.com/ru-ru/sql/relational-databases/data-compression/data-compression)
+- [Руководство по архитектуре страниц и экстентов](https://learn.microsoft.com/ru-ru/sql/relational-databases/pages-and-extents-architecture-guide) — страница, запись, ROW_OVERFLOW, LOB (к [2.9](02-mssql.md))
+- [Размер LOB-указателя для (max)-типов](https://improve.dk/what-is-the-size-of-the-lob-pointer-for-max-types-like-varchar-varbinary-etc/) — M. Rasmussen: inline root 24–72 байта
+- [Устройство хранения данных в MS SQL Server](https://infostart.ru/1c/articles/709159/) — Инфостарт: row overflow, LOB, цена `SELECT *`
 - [Скрипты обслуживания Ola Hallengren](https://ola.hallengren.com/) — `IndexOptimize`
 
 ### PostgreSQL (актуальная документация)
@@ -53,6 +56,7 @@
 - [Типы индексов](https://postgrespro.ru/docs/postgresql/17/indexes-types), [GiST](https://postgrespro.ru/docs/postgresql/17/gist), [SP-GiST](https://postgrespro.ru/docs/postgresql/17/spgist), [GIN](https://postgrespro.ru/docs/postgresql/17/gin), [BRIN](https://postgrespro.ru/docs/postgresql/17/brin) — устройство встроенных методов доступа (к [3.1](03-postgresql.md))
 - [pageinspect](https://postgrespro.ru/docs/postgresql/17/pageinspect) — функции для просмотра страниц индексов, которые используют скрипты `sql/postgresql/`
 - [pg_trgm](https://postgrespro.ru/docs/postgresql/17/pgtrgm) — триграммы
+- [Физическое хранение базы данных: TOAST](https://postgrespro.ru/docs/postgresql/17/storage-toast) и [структура страницы](https://postgrespro.ru/docs/postgresql/17/storage-page-layout) (к [3.10](03-postgresql.md))
 - Цикл Е. Рогова «Индексы в PostgreSQL» на Хабре — все части (B-tree, Hash, GiST, SP-GiST, GIN, BRIN и др.), начиная с [первой](https://habr.com/ru/companies/postgrespro/articles/326096/)
 
 ### Обе СУБД
@@ -71,6 +75,8 @@
 - [4 способа ускорить запись в регистры](https://xn----1-bedvffifm4g.xn--p1ai/news/2017-03-27-four-methods-of-write-acceleration/) — А. Бурмистров, в том числе разделение итогов
 - [Физические таблицы объектов конфигурации](https://almaz-sharipov.ru/article/1c-expert/tables) — состав таблиц регистров бухгалтерии и расчёта ([5.5](05-1c.md))
 - [GUID в 1С: устройство, использование, нюансы](https://1c.alexcode.ru/guid-v-1s-ustrojstvo-ispolzovanie-nekotorye-nyuansy/) — как генерируются ссылки ([5.6](05-1c.md))
+- [Соответствие типов 1С и типов СУБД](https://its.1c.ru/db/content/metod8dev/src/developers/platform/metod/other/i8101828.htm) — ИТС ([5.11](05-1c.md))
+- [Хранилище значения. Заметки](https://infostart.ru/1c/articles/1320336/) — Инфостарт: `image` и `varbinary(max)` в MS SQL, `bytea` в PostgreSQL, сжатие Deflate
 - «Реализация прикладных задач в системе 1С:Предприятие 8» (ИТС), глава «Вопросы производительности регистра бухгалтерии» — индексы таблиц итогов и влияние типа субконто
 
 ---

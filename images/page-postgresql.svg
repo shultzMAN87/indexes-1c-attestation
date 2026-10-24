@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="560" viewBox="0 0 880 560" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/>
+    </marker>
+    <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="879" height="559" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="24" y="32" font-size="17" font-weight="700" fill="#111827">PostgreSQL: страница кучи 8 КБ и TOAST для длинных значений</text>
+
+  <!-- ===== page ===== -->
+  <text x="30" y="60" font-size="12" fill="#6b7280" font-weight="600">Страница = 8192 байта</text>
+  <rect x="30" y="68" width="300" height="300" fill="#f9fafb" stroke="#6b7280" stroke-width="1.5"/>
+  <rect x="30" y="68" width="300" height="28" fill="#e5e7eb" stroke="#6b7280"/>
+  <text x="180" y="87" font-size="12" text-anchor="middle" fill="#111827" font-weight="600">заголовок — 24 байта</text>
+  <g font-size="11" text-anchor="middle" fill="#78350f">
+    <rect x="40" y="102" width="56" height="24" fill="#fef3c7" stroke="#d97706"/><text x="68" y="118">lp 1</text>
+    <rect x="98" y="102" width="56" height="24" fill="#fef3c7" stroke="#d97706"/><text x="126" y="118">lp 2</text>
+    <rect x="156" y="102" width="56" height="24" fill="#fef3c7" stroke="#d97706"/><text x="184" y="118">lp 3</text>
+  </g>
+  <text x="220" y="118" font-size="11" fill="#78350f">→ указатели (4 Б)</text>
+  <text x="180" y="148" font-size="12" text-anchor="middle" fill="#6b7280">↓ растут вниз</text>
+  <rect x="40" y="158" width="280" height="80" fill="#ffffff" stroke="#d1d5db" stroke-dasharray="4 3"/>
+  <text x="180" y="196" font-size="12" text-anchor="middle" fill="#6b7280">свободное место</text>
+  <text x="180" y="212" font-size="11" text-anchor="middle" fill="#9ca3af">(между lower и upper)</text>
+  <text x="180" y="256" font-size="12" text-anchor="middle" fill="#6b7280">↑ растут вверх</text>
+  <g font-size="11" fill="#1e3a8a">
+    <rect x="40" y="264" width="280" height="30" rx="3" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="50" y="283">версия строки 3</text>
+    <rect x="40" y="298" width="280" height="30" rx="3" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="50" y="317">версия строки 2</text>
+    <rect x="40" y="332" width="280" height="30" rx="3" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="50" y="351">версия строки 1</text>
+  </g>
+  <path d="M68,126 C68,200 20,340 38,347" fill="none" stroke="#d97706" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="30" y="388" font-size="12" fill="#374151"><tspan font-family="ui-monospace, Consolas, monospace">ctid = (страница, номер lp)</tspan>. Версия строки:</text>
+  <text x="30" y="404" font-size="12" fill="#374151">заголовок 23→24 байта (xmin, xmax, ctid, флаги)</text>
+  <text x="30" y="420" font-size="12" fill="#374151">+ NULL-битмап + данные с выравниванием.</text>
+
+  <!-- ===== TOAST ===== -->
+  <text x="360" y="60" font-size="13" font-weight="700" fill="#111827">TOAST — когда версия строки больше ~2 КБ</text>
+  <g font-size="12" fill="#374151">
+    <text x="360" y="84"><tspan font-weight="700">1.</tspan> Сжать длинные колонки (pglz или lz4) — начиная с самой большой.</text>
+    <text x="360" y="102"><tspan font-weight="700">2.</tspan> Всё ещё больше ~2 КБ — вынести значение в TOAST-таблицу</text>
+    <text x="376" y="118">кусками по ~2 КБ (1 996 байт), примерно 4 куска на страницу.</text>
+    <text x="360" y="136"><tspan font-weight="700">3.</tspan> В версии строки вместо значения — <tspan font-weight="700">указатель 18 байт</tspan>.</text>
+  </g>
+
+  <rect x="360" y="156" width="210" height="64" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="372" y="176" font-size="12" font-weight="700" fill="#1d4ed8">версия строки в куче</text>
+  <text x="372" y="194" font-size="11.5" fill="#1e3a8a">id, title,</text>
+  <text x="372" y="210" font-size="11.5" fill="#1e3a8a">note → <tspan font-family="ui-monospace, Consolas, monospace">chunk_id 32868</tspan></text>
+
+  <rect x="610" y="150" width="246" height="186" rx="6" fill="#fff7ed" stroke="#ea580c"/>
+  <text x="622" y="170" font-size="12" font-weight="700" fill="#c2410c">pg_toast.pg_toast_NNNN</text>
+  <g font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7c2d12">
+    <text x="622" y="190" font-weight="700">chunk_id</text><text x="700" y="190" font-weight="700">seq</text><text x="745" y="190" font-weight="700">chunk_data</text>
+    <rect x="618" y="196" width="230" height="20" fill="#fed7aa"/>
+    <text x="622" y="210">32868</text><text x="700" y="210">0</text><text x="745" y="210">1996 байт</text>
+    <rect x="618" y="218" width="230" height="20" fill="#fed7aa"/>
+    <text x="622" y="232">32868</text><text x="700" y="232">1</text><text x="745" y="232">1996 байт</text>
+    <text x="700" y="252">…</text>
+    <rect x="618" y="258" width="230" height="20" fill="#fed7aa"/>
+    <text x="622" y="272">32868</text><text x="700" y="272">102</text><text x="745" y="272">1208 байт</text>
+  </g>
+  <text x="622" y="300" font-size="11" fill="#9a3412">уникальный индекс</text>
+  <text x="622" y="314" font-size="11" fill="#9a3412">(chunk_id, chunk_seq) —</text>
+  <text x="622" y="328" font-size="11" fill="#9a3412">куски находятся по нему</text>
+  <line x1="570" y1="203" x2="616" y2="206" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+
+  <g font-size="12" fill="#374151">
+    <text x="360" y="246"><tspan font-weight="700">Стратегии</tspan> колонки</text>
+    <text x="360" y="262">(SET STORAGE):</text>
+    <text x="360" y="282"><tspan font-weight="700">EXTENDED</tspan> — сжать,</text>
+    <text x="360" y="298">потом вынести (по умолч.)</text>
+    <text x="360" y="316"><tspan font-weight="700">EXTERNAL</tspan> — без сжатия</text>
+    <text x="360" y="334"><tspan font-weight="700">MAIN</tspan> — выносить последней</text>
+    <text x="360" y="352"><tspan font-weight="700">PLAIN</tspan> — никогда (int, date)</text>
+    <text x="360" y="380">Предел значения — 1 ГБ.</text>
+  </g>
+
+  <!-- ===== bottom ===== -->
+  <line x1="24" y1="442" x2="856" y2="442" stroke="#e5e7eb"/>
+  <text x="30" y="464" font-size="13" font-weight="700" fill="#111827">Пример из скрипта: версия строки в куче — 46–64 байта, всё остальное в TOAST</text>
+  <g font-size="12" fill="#374151">
+    <text x="30" y="486">• текст 200 КБ с повторами → сжат до <tspan font-weight="700">2,4 КБ</tspan> → 2 куска;</text>
+    <text x="30" y="504">• текст 200 КБ без повторов → не сжимается → <tspan font-weight="700">103 куска</tspan> (~26 страниц TOAST);</text>
+    <text x="30" y="522">• две колонки 200 КБ + 500 КБ → у каждой свой chunk_id: <tspan font-weight="700">103 + 257 кусков</tspan>.</text>
+    <text x="30" y="546">Запрос без длинных колонок TOAST не трогает. <tspan font-family="ui-monospace, Consolas, monospace">LIKE '%…%'</tspan> собирает и распаковывает значение целиком.</text>
+  </g>
+</svg>

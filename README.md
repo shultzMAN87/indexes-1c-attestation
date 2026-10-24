@@ -42,6 +42,7 @@
 - 2.6. Фильтруемые индексы и сжатие данных
 - 2.7. Создание и перестроение индекса без остановки работы: `ONLINE`, `RESUMABLE`
 - 2.8. Индексы по выражениям: вычисляемые столбцы и индексированные представления
+- 2.9. Как хранятся строки на страницах: IN_ROW, ROW_OVERFLOW, LOB
 
 ### [Глава 3. PostgreSQL](docs/03-postgresql.md)
 - 3.1. Типы индексов: B-tree, Hash, GiST, SP-GiST, GIN, BRIN — устройство, схемы, скрипты
@@ -53,6 +54,7 @@
 - 3.7. Неиспользуемые индексы и тяжёлые запросы
 - 3.8. `CREATE INDEX CONCURRENTLY`
 - 3.9. Индексы по выражениям
+- 3.10. Как хранятся строки на страницах: версия строки, TOAST
 
 ### [Глава 4. Секционирование и индексы](docs/04-sekcionirovanie.md)
 - 4.1. ★ Индексы и секционирование в MS SQL: выровненные индексы, `SWITCH`, partition elimination
@@ -73,6 +75,7 @@
 - 5.8. `ИНДЕКСИРОВАТЬ ПО` во временных таблицах
 - 5.9. Ограничения доступа (RLS) и индексы
 - 5.10. Разделение итогов
+- 5.11. Длинные строки и ХранилищеЗначения в СУБД; `ПОДОБНО` по длинной строке
 
 ### [Глава 6. Обслуживание и диагностика](docs/06-obsluzhivanie-diagnostika.md)
 - 6.1. Регламент обслуживания индексов и статистики
@@ -89,6 +92,7 @@
 | Файл | Что делает | Раздел |
 |---|---|---|
 | [sql/mssql/01_columnstore_demo.sql](sql/mssql/01_columnstore_demo.sql) | Columnstore и rowstore на одних данных: размер, план, batch mode, группы строк и сегменты, segment elimination, deltastore | [2.5](docs/02-mssql.md#25-чем-columnstore-отличается-от-rowstore-и-для-каких-нагрузок-он-подходит) |
+| [sql/mssql/02_row_storage_lob.sql](sql/mssql/02_row_storage_lob.sql) | Страница и запись; IN_ROW / ROW_OVERFLOW / LOB на примерах 200 КБ и 500 КБ, две большие колонки, `ntext`/`image`; `lob logical reads` при `SELECT`, `LIKE`, `SUBSTRING` | [2.9](docs/02-mssql.md#29-как-ms-sql-хранит-строки-на-страницах-in_row-row_overflow-и-lob), [5.11](docs/05-1c.md#511-как-хранятся-длинные-строки-и-хранилищезначения-1с-и-что-происходит-при-отборе-подобно) |
 | [sql/postgresql/00_index_types_overview.sql](sql/postgresql/00_index_types_overview.sql) | Какие типы индексов установлены, что умеет каждый, классы операторов | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/01_btree.sql](sql/postgresql/01_btree.sql) | B-tree изнутри (`pageinspect`): уровни, `ctid` в листьях, дедупликация; Index / Index Only / Bitmap / Seq Scan | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/02_hash.sql](sql/postgresql/02_hash.sql) | Hash: корзины и хеш-коды, размер против B-tree на длинных строках, что не умеет | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
@@ -96,6 +100,7 @@
 | [sql/postgresql/04_spgist.sql](sql/postgresql/04_spgist.sql) | SP-GiST: дерево квадрантов и k-d дерево, префиксное дерево для строк, IP-подсети | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/05_gin.sql](sql/postgresql/05_gin.sql) | GIN: массивы, JSONB (`jsonb_ops` и `jsonb_path_ops`), триграммы для `LIKE '%…%'`, полнотекстовый поиск, отложенный список | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/06_brin.sql](sql/postgresql/06_brin.sql) | BRIN: сводки min/max, размер против B-tree, упорядоченная и перемешанная таблица, `minmax_multi` и `bloom` | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
+| [sql/postgresql/07_storage_toast.sql](sql/postgresql/07_storage_toast.sql) | Страница и версии строк (`pageinspect`); TOAST: сжатие, куски, 200 КБ и 500 КБ, две колонки; что читают `SELECT`, `LIKE`, `substr`; `UPDATE` без копирования TOAST | [3.10](docs/03-postgresql.md#310-как-postgresql-хранит-строки-страница-версия-строки-и-toast), [5.11](docs/05-1c.md#511-как-хранятся-длинные-строки-и-хранилищезначения-1с-и-что-происходит-при-отборе-подобно) |
 
 Скрипты учебные: запускайте в отдельной тестовой базе, не в базе 1С. Скрипты PostgreSQL проверены на PostgreSQL 16; используют расширения из стандартной поставки (`pageinspect`, `pg_trgm`, `btree_gist`).
 
