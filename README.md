@@ -43,6 +43,7 @@
 - 2.7. Создание и перестроение индекса без остановки работы: `ONLINE`, `RESUMABLE`
 - 2.8. Индексы по выражениям: вычисляемые столбцы и индексированные представления
 - 2.9. Как хранятся строки на страницах: IN_ROW, ROW_OVERFLOW, LOB
+- 2.10. READ COMMITTED SNAPSHOT и индексы: метка версии, version store, ghost-записи
 
 ### [Глава 3. PostgreSQL](docs/03-postgresql.md)
 - 3.1. Типы индексов: B-tree, Hash, GiST, SP-GiST, GIN, BRIN — устройство, схемы, скрипты
@@ -82,6 +83,8 @@
 - 6.2. Как найти медленный запрос и связанный индекс
 - 6.3. Кейс: тормозит отчёт по регистру
 - 6.4. Дублирующиеся и пересекающиеся индексы
+- 6.5. Статистика и выбор индекса: пороги обновления, возрастающий ключ, коррелированные условия
+- 6.6. Parameter sniffing: почему один и тот же запрос то пользуется индексом, то нет
 
 ### [Шпаргалка](docs/07-shpargalka.md) · [Источники](docs/08-istochniki.md)
 
@@ -93,6 +96,7 @@
 |---|---|---|
 | [sql/mssql/01_columnstore_demo.sql](sql/mssql/01_columnstore_demo.sql) | Columnstore и rowstore на одних данных: размер, план, batch mode, группы строк и сегменты, segment elimination, deltastore | [2.5](docs/02-mssql.md#25-чем-columnstore-отличается-от-rowstore-и-для-каких-нагрузок-он-подходит) |
 | [sql/mssql/02_row_storage_lob.sql](sql/mssql/02_row_storage_lob.sql) | Страница и запись; IN_ROW / ROW_OVERFLOW / LOB на примерах 200 КБ и 500 КБ, две большие колонки, `ntext`/`image`; `lob logical reads` при `SELECT`, `LIKE`, `SUBSTRING` | [2.9](docs/02-mssql.md#29-как-ms-sql-хранит-строки-на-страницах-in_row-row_overflow-и-lob), [5.11](docs/05-1c.md#511-как-хранятся-длинные-строки-и-хранилищезначения-1с-и-что-происходит-при-отборе-подобно) |
+| [sql/mssql/07_rcsi_version_tag.sql](sql/mssql/07_rcsi_version_tag.sql) | RCSI: метка версии 14 байт, рост записей и page split при fill factor 100, version store, ghost-записи, состояние после `REBUILD` | [2.10](docs/02-mssql.md#210-как-read-committed-snapshot-влияет-на-индексы-метка-версии-version-store-ghost-записи) |
 | [sql/postgresql/00_index_types_overview.sql](sql/postgresql/00_index_types_overview.sql) | Какие типы индексов установлены, что умеет каждый, классы операторов | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/01_btree.sql](sql/postgresql/01_btree.sql) | B-tree изнутри (`pageinspect`): уровни, `ctid` в листьях, дедупликация; Index / Index Only / Bitmap / Seq Scan | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/02_hash.sql](sql/postgresql/02_hash.sql) | Hash: корзины и хеш-коды, размер против B-tree на длинных строках, что не умеет | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
@@ -101,8 +105,9 @@
 | [sql/postgresql/05_gin.sql](sql/postgresql/05_gin.sql) | GIN: массивы, JSONB (`jsonb_ops` и `jsonb_path_ops`), триграммы для `LIKE '%…%'`, полнотекстовый поиск, отложенный список | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/06_brin.sql](sql/postgresql/06_brin.sql) | BRIN: сводки min/max, размер против B-tree, упорядоченная и перемешанная таблица, `minmax_multi` и `bloom` | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/07_storage_toast.sql](sql/postgresql/07_storage_toast.sql) | Страница и версии строк (`pageinspect`); TOAST: сжатие, куски, 200 КБ и 500 КБ, две колонки; что читают `SELECT`, `LIKE`, `substr`; `UPDATE` без копирования TOAST | [3.10](docs/03-postgresql.md#310-как-postgresql-хранит-строки-страница-версия-строки-и-toast), [5.11](docs/05-1c.md#511-как-хранятся-длинные-строки-и-хранилищезначения-1с-и-что-происходит-при-отборе-подобно) |
+| [sql/postgresql/08_statistics_plans.sql](sql/postgresql/08_statistics_plans.sql) | Статистика: коррелированные колонки и `CREATE STATISTICS`, возрастающий ключ (строки после последнего `ANALYZE`), custom- и generic-планы подготовленного запроса | [6.5](docs/06-obsluzhivanie-diagnostika.md#65-как-статистика-влияет-на-выбор-индекса-пороги-обновления-возрастающий-ключ-коррелированные-условия), [6.6](docs/06-obsluzhivanie-diagnostika.md#66-что-такое-parameter-sniffing-и-почему-один-и-тот-же-запрос-то-пользуется-индексом-то-нет) |
 
-Скрипты учебные: запускайте в отдельной тестовой базе, не в базе 1С. Скрипты PostgreSQL проверены на PostgreSQL 16; используют расширения из стандартной поставки (`pageinspect`, `pg_trgm`, `btree_gist`).
+Скрипты учебные: запускайте в отдельной тестовой базе, не в базе 1С. Скрипты PostgreSQL проверены на PostgreSQL 16; используют расширения из стандартной поставки (`pageinspect`, `pg_trgm`, `btree_gist`). Скрипт `07_rcsi_version_tag.sql` создаёт и удаляет собственную тестовую базу `demo_rcsi` (переключение RCSI требует монопольного доступа).
 
 ---
 
