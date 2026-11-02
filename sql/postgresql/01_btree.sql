@@ -196,9 +196,38 @@ SELECT * FROM demo_bt WHERE id BETWEEN 1000 AND 60000;
 SELECT attname, correlation FROM pg_stats
 WHERE tablename = 'demo_bt' AND attname IN ('id', 'status', 'amount');
 
--- Bitmap Index Scan → Bitmap Heap Scan: четверть строк, разбросанных по куче.
+-- Bitmap Index Scan → Bitmap Heap Scan: строки разбросаны по куче.
 -- Сначала из индекса собирается битовая карта страниц, потом страницы кучи
--- читаются по возрастанию номера, каждая один раз (Heap Blocks: exact=...)
+-- читаются по возрастанию номера, каждая один раз (Heap Blocks: exact=...).
+-- Индекс по amount создаём только для этого примера и сразу удаляем,
+-- чтобы он не мешал примеру со skip scan в разделе 4.
+CREATE INDEX demo_bt_amount ON demo_bt (amount);
+ANALYZE demo_bt;
+
+-- ~0,1% строк (около 1 000), разбросанных по ~960 страницам из 6 370.
+-- Ожидаемо: Bitmap Index Scan on demo_bt_amount → Bitmap Heap Scan,
+-- Heap Blocks: exact≈960 — читается только часть страниц, по порядку номеров.
+-- Index Scan здесь хуже: 1 000 случайных чтений кучи в порядке ключа,
+-- одна и та же страница могла бы читаться повторно.
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT * FROM demo_bt WHERE amount BETWEEN 100 AND 110;
+
+DROP INDEX demo_bt_amount;
+
+-- Пограничный случай: четверть таблицы, status = 'paid'.
+-- Значения status чередуются через строку, поэтому 'paid' есть на КАЖДОЙ
+-- странице кучи: Bitmap Heap Scan всё равно прочитает все 6 370 страниц
+-- (плюс ~200 страниц индекса) и выигрывает у Seq Scan только тем, что
+-- проверяет условие не у всех строк. Стоимости близки (на PG 16:
+-- Bitmap ≈ 12 300, Seq Scan ≈ 18 900), и в зависимости от версии и настроек
+-- (random_page_cost, effective_io_concurrency, work_mem) планировщик выбирает
+-- и то и другое. Оба плана правильные — вывод: при большой доле строк
+-- индекс почти ничего не даёт (раздел 1.4).
+-- Если увидели Seq Scan, сравните стоимости (COSTS ON):
+--   SET enable_seqscan = off;  EXPLAIN SELECT * FROM demo_bt WHERE status = 'paid';
+--   RESET enable_seqscan;
+-- Индекс по status создаётся в разделе 2 (demo_bt_status_dedup) — без него
+-- вариантов, кроме Seq Scan, нет.
 EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT * FROM demo_bt WHERE status = 'paid';
 
