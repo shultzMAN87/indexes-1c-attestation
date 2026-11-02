@@ -46,7 +46,7 @@
 - 2.10. READ COMMITTED SNAPSHOT и индексы: метка версии, version store, ghost-записи
 
 ### [Глава 3. PostgreSQL](docs/03-postgresql.md)
-- 3.1. Типы индексов: B-tree, Hash, GiST, SP-GiST, GIN, BRIN — устройство, схемы, скрипты
+- 3.1. Типы индексов: B-tree, Hash, GiST, SP-GiST, GIN, BRIN — устройство, схемы, скрипты; несколько типов на одной таблице, `BitmapAnd`/`BitmapOr`
 - 3.2. Почему нет кластерного индекса и что делает `CLUSTER`
 - 3.3. MVCC, HOT-обновления и раздувание
 - 3.4. `fillfactor` для таблицы и индекса, отличия от MS SQL
@@ -106,6 +106,7 @@
 | [sql/postgresql/06_brin.sql](sql/postgresql/06_brin.sql) | BRIN: сводки min/max, размер против B-tree, упорядоченная и перемешанная таблица, `minmax_multi` и `bloom` | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/07_storage_toast.sql](sql/postgresql/07_storage_toast.sql) | Страница и версии строк (`pageinspect`); TOAST: сжатие, куски, 200 КБ и 500 КБ, две колонки; что читают `SELECT`, `LIKE`, `substr`; `UPDATE` без копирования TOAST | [3.10](docs/03-postgresql.md#310-как-postgresql-хранит-строки-страница-версия-строки-и-toast), [5.11](docs/05-1c.md#511-как-хранятся-длинные-строки-и-хранилищезначения-1с-и-что-происходит-при-отборе-подобно) |
 | [sql/postgresql/08_statistics_plans.sql](sql/postgresql/08_statistics_plans.sql) | Статистика: коррелированные колонки и `CREATE STATISTICS`, возрастающий ключ (строки после последнего `ANALYZE`), custom- и generic-планы подготовленного запроса | [6.5](docs/06-obsluzhivanie-diagnostika.md#65-как-статистика-влияет-на-выбор-индекса-пороги-обновления-возрастающий-ключ-коррелированные-условия), [6.6](docs/06-obsluzhivanie-diagnostika.md#66-что-такое-parameter-sniffing-и-почему-один-и-тот-же-запрос-то-пользуется-индексом-то-нет) |
+| [sql/postgresql/09_multiple_index_types.sql](sql/postgresql/09_multiple_index_types.sql) | Шесть индексов разных типов на одной таблице (два — по одной колонке): размеры, выбор индекса под оператор, `BitmapAnd` (BRIN + GIN) и `BitmapOr` (Hash + GIN), цена при вставке | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 
 Скрипты учебные: запускайте в отдельной тестовой базе, не в базе 1С. Скрипты PostgreSQL проверены на PostgreSQL 16; используют расширения из стандартной поставки (`pageinspect`, `pg_trgm`, `btree_gist`). Скрипт `07_rcsi_version_tag.sql` создаёт и удаляет собственную тестовую базу `demo_rcsi` (переключение RCSI требует монопольного доступа).
 
