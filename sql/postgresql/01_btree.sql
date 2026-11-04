@@ -247,6 +247,10 @@ CREATE INDEX demo_bt_status_amount ON demo_bt (status, amount);
 ANALYZE demo_bt;
 EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT count(*) FROM demo_bt WHERE amount BETWEEN 100 AND 101;
+-- В плане смотрите строку «Index Searches: N»: N > 1 — сработал skip scan
+-- (по спуску на каждое из 4 значений status плюс служебные).
+-- Узел при этом обычный — Index Scan / Index Only Scan.
+-- Подробно — в разделе 1.5 (docs/01-teoriya.md), схема — images/skip-scan.svg.
 
 -- ---------------------------------------------------------------------
 -- Уборка

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skip scan в PostgreSQL 18 — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:880px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code{font-family:Consolas,'DejaVu Sans Mono',monospace;background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+label{font-size:14px;color:#6b7280}
+input[type=number]{width:56px;font:inherit;padding:4px 6px;border:1px solid #d1d5db;border-radius:6px}
+.grp{display:flex;align-items:center;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.lbl{width:80px;font-size:13px;color:#6b7280;font-family:Consolas,monospace}
+.cell{width:30px;height:28px;border-radius:5px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:Consolas,monospace;color:#6b7280;background:#fff;transition:background .12s}
+.read{background:#ffedd5;color:#9a3412;border-color:#fdba74}
+.hit{background:#dcfce7;color:#166534;border-color:#86efac;font-weight:700}
+.skip{color:#9ca3af;background:#f9fafb;border-style:dashed}
+.ms{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.m{background:#f9fafb;border-radius:8px;padding:10px 14px;flex:1;min-width:150px}
+.m div:first-child{font-size:13px;color:#6b7280}
+.m div:last-child{font-size:24px;font-weight:600}
+.leg{display:flex;gap:16px;margin-top:12px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg span.cell{display:inline-flex;width:14px;height:14px;vertical-align:-3px;margin-right:4px}
+</style>
+</head>
+<body>
+<h1>Skip scan в PostgreSQL 18</h1>
+<p class="sub">Индекс <code>(status, customer_id)</code>, запрос <code>WHERE customer_id = X</code> без условия на ведущую колонку. К разделу 1.5 методички.</p>
+
+<div class="ctrl">
+  <label>customer_id = <input type="number" id="target" min="1" max="10" value="5"></label>
+  <label>значений status: <input type="number" id="groups" min="1" max="8" value="4"></label>
+  <button id="bFull">Полный просмотр индекса (PG ≤ 17)</button>
+  <button id="bSkip">Skip scan (PG 18)</button>
+</div>
+
+<div id="leaf"></div>
+
+<div class="ms">
+  <div class="m"><div>Прочитано записей</div><div id="mRead">0</div></div>
+  <div class="m"><div>Спусков от корня (Index Searches)</div><div id="mSearch">0</div></div>
+  <div class="m"><div>Найдено строк</div><div id="mHit">0</div></div>
+</div>
+<div class="leg">
+  <span><span class="cell read"></span>прочитана, не подошла</span>
+  <span><span class="cell hit"></span>совпадение</span>
+  <span><span class="cell skip"></span>перепрыгнута, не читалась</span>
+</div>
+<p class="sub" style="margin-top:16px">Увеличьте число значений status: спусков становится больше, и выигрыш skip scan уменьшается. Поэтому он полезен, когда у ведущей колонки мало различных значений. Схема условная: в реальности единица чтения — страница индекса.</p>
+
+<script>
+const NAMES=['new','paid','shipped','closed','cancel','hold','return','draft'],N=10;
+const leaf=document.getElementById('leaf'),tIn=document.getElementById('target'),gIn=document.getElementById('groups');
+let timer=null,G=4,T=5;
+function clamp(v,a,b){v=parseInt(v,10);return isNaN(v)?a:Math.min(b,Math.max(a,v))}
+function build(){clearInterval(timer);G=clamp(gIn.value,1,8);T=clamp(tIn.value,1,N);gIn.value=G;tIn.value=T;leaf.innerHTML='';
+  for(let g=0;g<G;g++){const d=document.createElement('div');d.className='grp';d.innerHTML='<span class="lbl">'+NAMES[g]+'</span>';
+    for(let i=1;i<=N;i++){const c=document.createElement('div');c.className='cell';c.id='c'+g+'_'+i;c.textContent=i;d.appendChild(c)}leaf.appendChild(d)}
+  set(0,0,0)}
+function set(r,s,h){mRead.textContent=r;mSearch.textContent=s;mHit.textContent=h}
+function run(steps){build();let k=0,r=0,se=0,h=0;timer=setInterval(()=>{if(k>=steps.length){clearInterval(timer);return}
+  const st=steps[k++];if(st.t==='search')se++;else{document.getElementById(st.id).className='cell '+st.t;if(st.t!=='skip')r++;if(st.t==='hit')h++}set(r,se,h)},70)}
+bFull.onclick=()=>{build();const st=[{t:'search'}];for(let g=0;g<G;g++)for(let i=1;i<=N;i++)st.push({id:'c'+g+'_'+i,t:i===T?'hit':'read'});run(st)};
+bSkip.onclick=()=>{build();const st=[];for(let g=0;g<G;g++){st.push({t:'search'});for(let i=1;i<T;i++)st.push({id:'c'+g+'_'+i,t:'skip'});
+  st.push({id:'c'+g+'_'+T,t:'hit'});if(T<N)st.push({id:'c'+g+'_'+(T+1),t:'read'});for(let i=T+2;i<=N;i++)st.push({id:'c'+g+'_'+i,t:'skip'})}run(st)};
+tIn.onchange=build;gIn.onchange=build;build();
+</script>
+</body>
+</html>
