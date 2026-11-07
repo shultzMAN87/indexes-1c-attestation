@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Страница, слоты и page split — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:880px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code{font-family:Consolas,'DejaVu Sans Mono',monospace;background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+#dots{font-size:13px;color:#6b7280}
+#cap{font-size:15px;min-height:48px;margin:8px 0 4px}
+.lbl{font-size:13px;color:#6b7280;margin:16px 0 6px}
+.fs{display:flex;gap:6px}
+.fp{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;font-size:13px;background:#f9fafb}
+.fp.new{border:2px solid #f59e0b;background:#fffbeb}
+.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+.pg{border:1px solid #d1d5db;border-radius:12px;padding:10px 12px;margin:8px 0;background:#fff}
+.pg.new{border:2px solid #f59e0b}
+.hd{font-size:12px;color:#6b7280;margin-bottom:8px}
+.body{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap}
+.r,.s{font-family:Consolas,monospace;font-size:12px;border-radius:6px;padding:4px 6px;text-align:center;min-width:44px;border:1px solid transparent}
+.r{background:#dbeafe;color:#1e40af}
+.s{background:#ede9fe;color:#5b21b6}
+.hl{background:#fef3c7 !important;color:#92400e !important;border-color:#fcd34d}
+.hole{background:#fff;border:1px dashed #9ca3af;color:#9ca3af}
+.free{flex:1;min-width:30px;border:1px dashed #e5e7eb;border-radius:6px;font-size:11px;color:#9ca3af;display:flex;align-items:center;justify-content:center}
+.sm{font-size:11px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.leg{font-size:12px;color:#374151;margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+</style>
+</head>
+<body>
+<h1>Страница, массив слотов и page split</h1>
+<p class="sub">Учебная модель: строка — 40 байт, на странице помещается 6 строк, заголовок 96 байт. К разделам 2.2 и 2.9 методички.</p>
+
+<div class="ctrl">
+  <button id="bp">← Назад</button>
+  <button id="bn">Дальше →</button>
+  <span id="dots"></span>
+</div>
+<div id="cap"></div>
+
+<div class="lbl">Физический файл: страница N лежит по смещению N × 8192 (смещение вычисляется, не хранится)</div>
+<div class="fs" id="file"></div>
+
+<div class="lbl">Логическая цепочка листьев (по prev/next в заголовках)</div>
+<div class="row mono" id="chain"></div>
+
+<div class="lbl">Корень индекса (стр. 99): «минимальный ключ → номер дочерней страницы»</div>
+<div class="row" id="root"></div>
+
+<div class="lbl">Листовые страницы: слева записи в физическом порядке записи, справа массив слотов (в порядке ключа, растёт с конца страницы)</div>
+<div id="pages"></div>
+
+<div class="leg">
+  <span class="r">ключ<span class="sm">@смещ</span></span> запись
+  <span class="s">s0=96</span> слот → смещение записи
+  <span class="r hole">дыра</span> освободившееся место
+  <span class="r hl">новое</span> изменилось на этом шаге
+</div>
+
+<script>
+const R=(k,o,h)=>({k,o,h});
+const steps=[
+{cap:"Старт. Индекс из двух листовых страниц: 100 и 101. Корень говорит: ключи от 10 — на стр. 100, от 70 — на стр. 101.",
+ files:[99,100,101],nw:[],root:[[10,100],[70,101]],chain:[100,101],
+ pages:[{id:100,prev:"—",next:101,rows:[R(10,96),R(30,136),R(50,176)]},{id:101,prev:100,next:"—",rows:[R(70,96),R(80,136),R(90,176)]}]},
+{cap:"INSERT 20. Запись дописывается в начало свободного места (смещение 216) — физически после 50. Записи 30 и 50 не двигаются: смещение 216 вставляется в массив слотов на позицию 1.",
+ files:[99,100,101],nw:[],root:[[10,100],[70,101]],chain:[100,101],
+ pages:[{id:100,prev:"—",next:101,rows:[R(10,96),R(30,136),R(50,176),R(20,216,1)]},{id:101,prev:100,next:"—",rows:[R(70,96),R(80,136),R(90,176)]}]},
+{cap:"INSERT 40 и 60. Физически: 10, 30, 50, 20, 40, 60. Логически (по слотам): 10, 20, 30, 40, 50, 60. Страница заполнена.",
+ files:[99,100,101],nw:[],root:[[10,100],[70,101]],chain:[100,101],
+ pages:[{id:100,prev:"—",next:101,rows:[R(10,96),R(30,136),R(50,176),R(20,216),R(40,256,1),R(60,296,1)]},{id:101,prev:100,next:"—",rows:[R(70,96),R(80,136),R(90,176)]}]},
+{cap:"INSERT 35 — места нет, page split. Свободна стр. 102 в конце файла (а не рядом). Верхняя половина (40, 50, 60) переезжает туда, 35 пишется в стр. 100, переписываются prev/next у 100, 102 и 101, в корень добавляется «40 → 102».",
+ files:[99,100,101,102],nw:[102],root:[[10,100],[40,102,1],[70,101]],chain:[100,102,101],
+ pages:[{id:100,prev:"—",next:102,nh:1,rows:[R(10,96),R(30,136),{hole:1,o:176},R(20,216),R(35,256,1)]},{id:102,prev:100,next:101,nw:1,rows:[R(40,96,1),R(50,136,1),R(60,176,1)]},{id:101,prev:102,next:"—",nh:1,rows:[R(70,96),R(80,136),R(90,176)]}]},
+{cap:"Итог. Логически 100 → 102 → 101, физически в файле 100, 101, 102 — сканирование прыгает по файлу (внешняя фрагментация). Обе страницы заполнены примерно наполовину (внутренняя фрагментация, низкая плотность). Порядок строк внутри страницы фрагментацией не считается.",
+ files:[99,100,101,102],nw:[102],root:[[10,100],[40,102],[70,101]],chain:[100,102,101],
+ pages:[{id:100,prev:"—",next:102,rows:[R(10,96),R(30,136),{hole:1,o:176},R(20,216),R(35,256)]},{id:102,prev:100,next:101,rows:[R(40,96),R(50,136),R(60,176)]},{id:101,prev:102,next:"—",rows:[R(70,96),R(80,136),R(90,176)]}]}
+];
+let i=0;
+const $=id=>document.getElementById(id);
+function render(){
+  const s=steps[i];
+  $('cap').textContent=s.cap;
+  $('dots').textContent=steps.map((_,j)=>j===i?'●':'○').join(' ')+'   шаг '+(i+1)+' из '+steps.length;
+  $('file').innerHTML=s.files.map(f=>`<div class="fp ${s.nw.includes(f)?'new':''}"><b>стр. ${f}</b>${f===99?' (корень)':''}<br><span class="mono" style="color:#6b7280">${(f*8192).toLocaleString('ru-RU')}</span></div>`).join('');
+  $('chain').innerHTML=s.chain.map(c=>`<span class="r ${s.nw.includes(c)?'hl':''}">${c}</span>`).join(' ⇄ ');
+  $('root').innerHTML=s.root.map(e=>`<span class="s ${e[2]?'hl':''}">${e[0]} → стр.${e[1]}</span>`).join('');
+  $('pages').innerHTML=s.pages.map(p=>{
+    const rows=p.rows.filter(r=>!r.hole).slice().sort((a,b)=>a.k-b.k);
+    const slots=rows.map((r,j)=>`<span class="s ${r.h?'hl':''}">s${j}=${r.o}<br><span class="sm">(${r.k})</span></span>`).reverse().join('');
+    const phys=p.rows.map(r=>r.hole?`<span class="r hole">дыра<br><span class="sm">@${r.o}</span></span>`:`<span class="r ${r.h?'hl':''}">${r.k}<br><span class="sm">@${r.o}</span></span>`).join('');
+    return `<div class="pg ${p.nw?'new':''}"><div class="hd mono">заголовок 0–95: m_pageId=${p.id} · prev=${p.prev} · next=${p.next}</div><div class="body">${phys}<div class="free">свободно</div>${slots}</div></div>`;
+  }).join('');
+}
+$('bn').onclick=()=>{i=(i+1)%steps.length;render()};
+$('bp').onclick=()=>{i=(i-1+steps.length)%steps.length;render()};
+render();
+</script>
+</body>
+</html>
