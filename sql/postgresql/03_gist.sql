@@ -1,6 +1,6 @@
 /* =====================================================================
    GiST в PostgreSQL: дерево ограничивающих областей, KNN, EXCLUDE,
-   опорные функции, деградация после удалений
+   опорные функции, деградация после удалений, RD-дерево для tsvector
    К разделу 3.1 методички (docs/03-postgresql.md)
 
    Запускать в отдельной тестовой базе, не в базе 1С.
@@ -162,7 +162,98 @@ SELECT keys FROM gist_page_items(get_raw_page('demo_gist_decay_pos', 0), 'demo_g
 EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT * FROM demo_gist_decay WHERE pos <@ box '((50,0),(100,100))';
 
+-- =====================================================================
+-- Часть 5. RD-дерево: GiST по tsvector (полнотекстовый поиск)
+--   Ключ — сигнатура: лексема → бит, документ = OR битов лексем,
+--   родитель = OR сигнатур потомков. siglen по умолчанию 124 байта = 992 бита
+-- =====================================================================
+DROP TABLE IF EXISTS demo_fts;
+CREATE TABLE demo_fts (id int GENERATED ALWAYS AS IDENTITY, tsv tsvector);
+
+-- 30 тыс. документов по 20–320 слов из словаря 20 тыс. слов (частые слова встречаются чаще)
+INSERT INTO demo_fts (tsv)
+SELECT to_tsvector('simple',
+         (SELECT string_agg('w' || floor(power(random(), 2) * 20000)::int, ' ')
+          FROM generate_series(1, 20 + (g % 300))
+          WHERE g > 0))                     -- ссылка на g: подзапрос считается для каждой строки
+FROM generate_series(1, 30000) AS g;
+
+CREATE INDEX demo_fts_gist ON demo_fts USING gist (tsv);
+VACUUM ANALYZE demo_fts;
+
+SELECT pg_size_pretty(pg_relation_size('demo_fts_gist')) AS gist_size,
+       pg_relation_size('demo_fts_gist') / 8192          AS gist_pages;
+
+-- ---------------------------------------------------------------------
+-- 5.1. Что лежит в узлах.
+--   "N unique words"          — лист, короткий документ: массив хешей лексем (почти точно)
+--   "X true bits, Y false bits" — сигнатура (лист с длинным документом или внутренний узел)
+--   "0 true bits, 0 false bits" — так PG 16 показывает узел «all true»: все биты = 1,
+--                                 маска не хранится, узел НИЧЕГО не отсекает
+-- ---------------------------------------------------------------------
+WITH pages AS (
+    SELECT n, 'leaf' = ANY ((gist_page_opaque_info(get_raw_page('demo_fts_gist', n))).flags) AS is_leaf
+    FROM generate_series(0, pg_relation_size('demo_fts_gist') / 8192 - 1) AS n
+)
+SELECT CASE WHEN is_leaf THEN 'лист' ELSE 'внутренний' END AS level,
+       CASE WHEN keys LIKE '%unique words%'               THEN 'массив хешей'
+            WHEN keys LIKE '%"0 true bits, 0 false bits"%' THEN 'all true'
+            ELSE 'сигнатура' END                            AS key_kind,
+       count(*)
+FROM pages, gist_page_items(get_raw_page('demo_fts_gist', n), 'demo_fts_gist')
+GROUP BY 1, 2 ORDER BY 1, 2;
+
+-- Корень: при длинных документах все записи — «all true» (насыщение)
+SELECT itemoffset, keys FROM gist_page_items(get_raw_page('demo_fts_gist', 0), 'demo_fts_gist') LIMIT 5;
+
+-- Где граница «массив / сигнатура» в листьях (около 125 лексем при siglen = 124)
+WITH leaf_items AS (
+    SELECT i.ctid, i.keys
+    FROM generate_series(1, pg_relation_size('demo_fts_gist') / 8192 - 1) AS n,
+         gist_page_items(get_raw_page('demo_fts_gist', n), 'demo_fts_gist') AS i
+    WHERE 'leaf' = ANY ((gist_page_opaque_info(get_raw_page('demo_fts_gist', n))).flags)
+)
+SELECT CASE WHEN keys LIKE '%unique words%' THEN 'массив хешей' ELSE 'сигнатура' END AS leaf_key,
+       min(length(f.tsv)) AS min_lexemes, max(length(f.tsv)) AS max_lexemes, count(*)
+FROM leaf_items li JOIN demo_fts f ON f.ctid = li.ctid
+GROUP BY 1;
+
+-- ---------------------------------------------------------------------
+-- 5.2. Поиск одного слова: смотрите Buffers у Bitmap Index Scan
+--      (≈ весь индекс) и Rows Removed by Index Recheck (ложные срабатывания)
+-- ---------------------------------------------------------------------
+SET enable_seqscan = off; SET enable_indexscan = off;   -- чтобы был виден Bitmap и Recheck
+
+SELECT count(*) AS real_matches FROM demo_fts WHERE tsv @@ to_tsquery('simple', 'w15000');
+
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT id FROM demo_fts WHERE tsv @@ to_tsquery('simple', 'w15000');
+
+-- ---------------------------------------------------------------------
+-- 5.3. Длиннее сигнатура — меньше коллизий, но индекс больше
+-- ---------------------------------------------------------------------
+DROP INDEX demo_fts_gist;
+CREATE INDEX demo_fts_gist_1024 ON demo_fts USING gist (tsv tsvector_ops (siglen = 1024));
+
+SELECT pg_size_pretty(pg_relation_size('demo_fts_gist_1024')) AS gist_1024_size;
+
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT id FROM demo_fts WHERE tsv @@ to_tsquery('simple', 'w15000');
+
+-- ---------------------------------------------------------------------
+-- 5.4. Для сравнения — GIN: «лексема → список строк», без ложных кандидатов
+-- ---------------------------------------------------------------------
+DROP INDEX demo_fts_gist_1024;
+CREATE INDEX demo_fts_gin ON demo_fts USING gin (tsv);
+
+SELECT pg_size_pretty(pg_relation_size('demo_fts_gin')) AS gin_size;
+
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT id FROM demo_fts WHERE tsv @@ to_tsquery('simple', 'w15000');
+
+RESET enable_seqscan; RESET enable_indexscan;
+
 -- ---------------------------------------------------------------------
 -- Уборка
 -- ---------------------------------------------------------------------
--- DROP TABLE demo_shops; DROP TABLE demo_booking; DROP TABLE demo_gist_decay;
+-- DROP TABLE demo_shops; DROP TABLE demo_booking; DROP TABLE demo_gist_decay; DROP TABLE demo_fts;

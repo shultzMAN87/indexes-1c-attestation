@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="600" viewBox="0 0 880 600" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+    <marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="879" height="599" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="24" y="32" font-size="17" font-weight="700" fill="#111827">RD-дерево (GiST по tsvector): узел = сигнатура, OR всех сигнатур поддерева</text>
+  <text x="30" y="62" font-size="12" fill="#6b7280" font-weight="600">1. Лексема → хеш → номер бита</text>
+  <text x="30" y="78" font-size="11" fill="#6b7280">(на схеме 8 бит; в PostgreSQL по умолчанию</text>
+  <text x="30" y="92" font-size="11" fill="#6b7280">siglen = 124 байта = 992 бита)</text>
+  <g font-size="12" fill="#1f2937">
+    <text x="34" y="122" fill="#1f2937">«страница»</text>
+    <text x="112" y="122" fill="#6b7280">→ бит 0</text>
+    <rect x="170" y="112" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="182" y="112" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="194" y="112" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="206" y="112" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="218" y="112" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="230" y="112" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="242" y="112" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="254" y="112" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <text x="34" y="144" fill="#1f2937">«индекс»</text>
+    <text x="112" y="144" fill="#6b7280">→ бит 1</text>
+    <rect x="170" y="134" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="182" y="134" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="194" y="134" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="206" y="134" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="218" y="134" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="230" y="134" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="242" y="134" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="254" y="134" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <text x="34" y="166" fill="#1f2937">«кеш»</text>
+    <text x="112" y="166" fill="#6b7280">→ бит 3</text>
+    <rect x="170" y="156" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="182" y="156" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="194" y="156" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="206" y="156" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="218" y="156" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="230" y="156" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="242" y="156" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="254" y="156" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <text x="34" y="188" fill="#1f2937">«дерево»</text>
+    <text x="112" y="188" fill="#6b7280">→ бит 4</text>
+    <rect x="170" y="178" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="182" y="178" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="194" y="178" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="206" y="178" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="218" y="178" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="230" y="178" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="242" y="178" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="254" y="178" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <text x="34" y="210" fill="#1f2937">«поиск»</text>
+    <text x="112" y="210" fill="#6b7280">→ бит 6</text>
+    <rect x="170" y="200" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="182" y="200" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="194" y="200" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="206" y="200" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="218" y="200" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="230" y="200" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="242" y="200" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="254" y="200" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <text x="34" y="232" fill="#c2410c">«лист»</text>
+    <text x="112" y="232" fill="#6b7280">→ бит 6</text>
+    <rect x="170" y="222" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="182" y="222" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="194" y="222" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="206" y="222" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="218" y="222" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="230" y="222" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="242" y="222" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="254" y="222" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  </g>
+  <text x="34" y="252" font-size="11" fill="#c2410c">«поиск» и «лист» попали в один бит —</text>
+  <text x="34" y="266" font-size="11" fill="#c2410c">коллизия: индекс их не различает</text>
+  <text x="30" y="292" font-size="12" fill="#6b7280" font-weight="600">2. Документ → OR битов его лексем</text>
+  <text x="34" y="312" font-size="12" fill="#1f2937">«индекс дерево»</text>
+    <rect x="170" y="302" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="182" y="302" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="194" y="302" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="206" y="302" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="218" y="302" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="230" y="302" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="242" y="302" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="254" y="302" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="34" y="334" font-size="11" fill="#6b7280">биты 1 и 4</text>
+  <text x="30" y="362" font-size="12" fill="#6b7280" font-weight="600">3. Узел → OR сигнатур потомков</text>
+  <text x="34" y="380" font-size="11" fill="#374151">Множество слов родителя содержит</text>
+  <text x="34" y="394" font-size="11" fill="#374151">множества потомков, как матрёшка:</text>
+  <text x="34" y="408" font-size="11" fill="#374151">Russian Doll tree.</text>
+  <text x="350" y="62" font-size="12" fill="#6b7280" font-weight="600">Поиск <tspan font-family="ui-monospace, Consolas, monospace">tsv @@ 'поиск'</tspan> → проверяем бит 6 на каждом уровне</text>
+  <rect x="554.0" y="76" width="112" height="50" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="610" y="92" font-size="11.5" text-anchor="middle" font-weight="700" fill="#111827">корень</text>
+    <rect x="562" y="100" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="574" y="100" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="586" y="100" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="598" y="100" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="610" y="100" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="622" y="100" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="634" y="100" width="12" height="12" fill="#ea580c" stroke="#ea580c" stroke-width="1.6"/>
+    <rect x="646" y="100" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  <rect x="434.0" y="160" width="112" height="50" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="490" y="176" font-size="11.5" text-anchor="middle" font-weight="700" fill="#111827">узел N1</text>
+    <rect x="442" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="454" y="184" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="466" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="478" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="490" y="184" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="502" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="514" y="184" width="12" height="12" fill="#ea580c" stroke="#ea580c" stroke-width="1.6"/>
+    <rect x="526" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  <rect x="674.0" y="160" width="112" height="50" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="730" y="176" font-size="11.5" text-anchor="middle" font-weight="700" fill="#111827">узел N2</text>
+    <rect x="682" y="184" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="694" y="184" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="706" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="718" y="184" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="730" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="742" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="754" y="184" width="12" height="12" fill="#ea580c" stroke="#ea580c" stroke-width="1.6"/>
+    <rect x="766" y="184" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  <rect x="374.0" y="250" width="112" height="64" rx="6" fill="#f9fafb" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="430" y="266" font-size="11.5" text-anchor="middle" font-weight="700" fill="#111827">D1 → отсечь</text>
+    <rect x="382" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="394" y="274" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="406" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="418" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="430" y="274" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="442" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="454" y="274" width="12" height="12" fill="#ffffff" stroke="#ea580c" stroke-width="1.6"/>
+    <rect x="466" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="430" y="306" font-size="10.5" text-anchor="middle" fill="#374151">«индекс дерево»</text>
+  <rect x="494.0" y="250" width="112" height="64" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="550" y="266" font-size="11.5" text-anchor="middle" font-weight="700" fill="#111827">D2 → нашли</text>
+    <rect x="502" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="514" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="526" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="538" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="550" y="274" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="562" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="574" y="274" width="12" height="12" fill="#ea580c" stroke="#ea580c" stroke-width="1.6"/>
+    <rect x="586" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="550" y="306" font-size="10.5" text-anchor="middle" fill="#374151">«дерево поиск»</text>
+  <rect x="614.0" y="250" width="112" height="64" rx="6" fill="#f9fafb" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="670" y="266" font-size="11.5" text-anchor="middle" font-weight="700" fill="#111827">D3 → отсечь</text>
+    <rect x="622" y="274" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="634" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="646" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="658" y="274" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="670" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="682" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="694" y="274" width="12" height="12" fill="#ffffff" stroke="#ea580c" stroke-width="1.6"/>
+    <rect x="706" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="670" y="306" font-size="10.5" text-anchor="middle" fill="#374151">«страница кеш»</text>
+  <rect x="734.0" y="250" width="112" height="64" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="790" y="266" font-size="11.5" text-anchor="middle" font-weight="700" fill="#111827">D4 → кандидат</text>
+    <rect x="742" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="754" y="274" width="12" height="12" fill="#1e3a8a" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="766" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="778" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="790" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="802" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+    <rect x="814" y="274" width="12" height="12" fill="#ea580c" stroke="#ea580c" stroke-width="1.6"/>
+    <rect x="826" y="274" width="12" height="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="790" y="306" font-size="10.5" text-anchor="middle" fill="#374151">«лист индекс»</text>
+  <line x1="610" y1="126" x2="490" y2="158" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+  <line x1="610" y1="126" x2="730" y2="158" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+  <line x1="490" y1="210" x2="430" y2="248" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="490" y1="210" x2="550" y2="248" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+  <line x1="730" y1="210" x2="670" y2="248" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="730" y1="210" x2="790" y2="248" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+  <g font-size="12" fill="#374151">
+    <text x="350" y="346">Бит 6 = 1 в корне, N1 и N2 → спускаемся в обе ветви. На листьях: D1 и D3 —</text>
+    <text x="350" y="362">бит 6 = 0, слова там <tspan font-weight="700">точно нет</tspan>. D2 и D4 — бит 6 = 1, «может быть».</text>
+    <text x="350" y="384"><tspan font-weight="700" fill="#dc2626">D4 — ложное срабатывание:</tspan> бит 6 дала «лист», а не «поиск».</text>
+    <text x="350" y="400">Отсеивается только перепроверкой строки в таблице:</text>
+    <text x="350" y="416"><tspan font-family="ui-monospace, Consolas, monospace">Rows Removed by Index Recheck</tspan>.</text>
+  </g>
+  <line x1="24" y1="440" x2="856" y2="440" stroke="#e5e7eb"/>
+  <g font-size="12.5" fill="#374151">
+    <text x="30" y="462"><tspan font-weight="700">Насыщение — главная беда RD-дерева.</tspan> Чем выше узел, тем больше документов слито в его OR и тем больше единиц.</text>
+    <text x="30" y="480">Когда все биты = 1 (флаг «all true»), узел ничего не отсекает. Скрипт: 30 тыс. документов по 20–320 слов — все 38 записей корня</text>
+    <text x="30" y="498">«all true», поиск одного слова читает <tspan font-weight="700">весь индекс (~1 030 стр.)</tspan>, ~5 950 кандидатов, из них ~5 820 ложных (98%).</text>
+    <text x="30" y="522"><tspan font-weight="700">Лист:</tspan> короткий документ (до ~125 лексем) хранится массивом 4-байтовых хешей лексем — почти точно;</text>
+    <text x="30" y="540">длинный — сигнатурой. <tspan font-weight="700">siglen</tspan> больше → меньше коллизий, но индекс крупнее: siglen = 1024 → ~520 кандидатов, 33 МБ вместо 8 МБ.</text>
+    <text x="30" y="564"><tspan font-weight="700">GIN</tspan> на тех же данных: 4 страницы индекса и ни одного ложного кандидата — для чтения почти всегда лучше.</text>
+    <text x="30" y="582">GiST по tsvector берут ради дешёвых обновлений, коротких документов или составного GiST-индекса с другими колонками.</text>
+  </g>
+</svg>
