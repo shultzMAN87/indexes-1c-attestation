@@ -1,6 +1,7 @@
 /* =====================================================================
    GiST в PostgreSQL: дерево ограничивающих областей, KNN, EXCLUDE,
-   опорные функции, деградация после удалений, RD-дерево для tsvector
+   опорные функции, деградация после удалений, RD-дерево для tsvector,
+   лексемы и стеммер (поиск слова «мир»)
    К разделу 3.1 методички (docs/03-postgresql.md)
 
    Запускать в отдельной тестовой базе, не в базе 1С.
@@ -251,9 +252,53 @@ SELECT pg_size_pretty(pg_relation_size('demo_fts_gin')) AS gin_size;
 EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT id FROM demo_fts WHERE tsv @@ to_tsquery('simple', 'w15000');
 
+-- ---------------------------------------------------------------------
+-- 5.5. Префикс (w15000:*) RD-дерево не отсекает: из GiST выходят ВСЕ строки
+--      кандидатами, отсеивает их только перепроверка (полный перебор)
+-- ---------------------------------------------------------------------
+DROP INDEX demo_fts_gin;
+CREATE INDEX demo_fts_gist ON demo_fts USING gist (tsv);
+
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT id FROM demo_fts WHERE tsv @@ to_tsquery('simple', 'w15000:*');
+
 RESET enable_seqscan; RESET enable_indexscan;
+
+-- =====================================================================
+-- Часть 6. Лексемы и стеммер: поиск слова «мир»
+-- =====================================================================
+-- Разбор текста: парсер → стоп-слова («и» — пустая лексема) → стеммер russian_stem
+SELECT alias, token, dictionaries, lexemes
+FROM ts_debug('russian', 'Война и мир. Адмирал читал, договор подписан')
+WHERE alias <> 'blank';
+
+-- Что стеммер делает с отдельными словами
+SELECT w AS word, ts_lexize('russian_stem', w) AS lexeme
+FROM unnest(ARRAY[
+    'мир', 'мира', 'мирах', 'мирный', 'мирными', 'Миротворец', 'Памир', 'Пальмира', 'Мираж', 'Адмирал',
+    'мирить', 'мирю',                  -- склеились с «мир»
+    'бежать', 'бегу', 'человек', 'люди', 'идти', 'шёл',   -- формы одного слова НЕ склеились
+    'столица', 'котировка'             -- корень не принят за окончание
+]) AS w;
+
+DROP TABLE IF EXISTS demo_mir;
+CREATE TABLE demo_mir (id int, body text, tsv tsvector);
+INSERT INTO demo_mir (id, body) VALUES
+    (1, 'Война и мир'),        (2, 'Мирный договор подписан'), (3, 'Миротворец прибыл'),
+    (4, 'Горы Памира'),        (5, 'Древняя Пальмира'),        (6, 'Мираж в пустыне'),
+    (7, 'Адмирал флота'),      (8, 'Жить в мире и согласии'),  (9, 'Слухи о новых мирах');
+UPDATE demo_mir SET tsv = to_tsvector('russian', body);
+
+-- Слово целиком: только 1, 8, 9
+SELECT id, body, tsv FROM demo_mir WHERE tsv @@ to_tsquery('russian', 'мир') ORDER BY id;
+
+-- Начинается на «мир»: + Мирный, Миротворец, Мираж (1, 2, 3, 6, 8, 9)
+SELECT id, body FROM demo_mir WHERE tsv @@ to_tsquery('russian', 'мир:*') ORDER BY id;
+
+-- Подстрока где угодно: все 9 — это уже не полнотекстовый поиск, а pg_trgm
+SELECT id, body FROM demo_mir WHERE body ILIKE '%мир%' ORDER BY id;
 
 -- ---------------------------------------------------------------------
 -- Уборка
 -- ---------------------------------------------------------------------
--- DROP TABLE demo_shops; DROP TABLE demo_booking; DROP TABLE demo_gist_decay; DROP TABLE demo_fts;
+-- DROP TABLE demo_shops; DROP TABLE demo_booking; DROP TABLE demo_gist_decay; DROP TABLE demo_fts; DROP TABLE demo_mir;
