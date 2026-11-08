@@ -1,5 +1,6 @@
 /* =====================================================================
-   GiST в PostgreSQL: дерево ограничивающих областей, KNN, EXCLUDE
+   GiST в PostgreSQL: дерево ограничивающих областей, KNN, EXCLUDE,
+   опорные функции, деградация после удалений
    К разделу 3.1 методички (docs/03-postgresql.md)
 
    Запускать в отдельной тестовой базе, не в базе 1С.
@@ -110,7 +111,58 @@ EXPLAIN (COSTS OFF)
 SELECT * FROM demo_booking
 WHERE room = 1 AND during && tstzrange('2024-06-10 10:45', '2024-06-10 11:15');
 
+-- =====================================================================
+-- Часть 3. Опорные функции классов операторов GiST
+--   1 consistent, 2 union, 3 compress, 4 decompress, 5 penalty,
+--   6 picksplit, 7 same, 8 distance, 9 fetch, 10 options, 11 sortsupport
+-- =====================================================================
+SELECT opc.opcname AS opclass,
+       string_agg(p.amprocnum || ':' || p.amproc::regproc::text, ', ' ORDER BY p.amprocnum) AS support_functions
+FROM pg_opclass opc
+JOIN pg_am a      ON a.oid = opc.opcmethod AND a.amname = 'gist'
+JOIN pg_amproc p  ON p.amprocfamily = opc.opcfamily
+                 AND p.amproclefttype = opc.opcintype
+                 AND p.amprocrighttype = opc.opcintype
+WHERE opc.opcname IN ('point_ops', 'box_ops', 'range_ops', 'tsvector_ops')
+GROUP BY opc.opcname
+ORDER BY opc.opcname;
+-- point_ops: есть distance (8) → KNN, fetch (9) → Index Only Scan, sortsupport (11) → быстрое построение
+-- tsvector_ops: compress/decompress (3, 4) → сигнатуры, options (10) → siglen; fetch нет → без Index Only Scan
+
+-- =====================================================================
+-- Часть 4. Деградация: после DELETE ключи родителей не сужаются
+-- =====================================================================
+DROP TABLE IF EXISTS demo_gist_decay;
+CREATE TABLE demo_gist_decay (pos point);
+INSERT INTO demo_gist_decay
+SELECT point(random() * 100, random() * 100) FROM generate_series(1, 200000);
+CREATE INDEX demo_gist_decay_pos ON demo_gist_decay USING gist (pos);
+VACUUM ANALYZE demo_gist_decay;
+
+-- Прямоугольники корня до удаления
+SELECT keys FROM gist_page_items(get_raw_page('demo_gist_decay_pos', 0), 'demo_gist_decay_pos') LIMIT 5;
+
+-- Удалить все точки с x > 10 (около 90%)
+DELETE FROM demo_gist_decay WHERE pos[0] > 10;
+VACUUM demo_gist_decay;
+
+-- После VACUUM прямоугольники корня ТЕ ЖЕ: охватывают области, где точек уже нет
+SELECT keys FROM gist_page_items(get_raw_page('demo_gist_decay_pos', 0), 'demo_gist_decay_pos') LIMIT 5;
+
+-- Поиск в опустевшей области: ничего не найдено, но прочитано ~20 страниц
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT * FROM demo_gist_decay WHERE pos <@ box '((50,0),(100,100))';
+
+-- Перестроение: ключи пересчитываются по оставшимся данным
+REINDEX INDEX CONCURRENTLY demo_gist_decay_pos;
+
+SELECT keys FROM gist_page_items(get_raw_page('demo_gist_decay_pos', 0), 'demo_gist_decay_pos') LIMIT 5;
+
+-- Тот же поиск — 1 страница (корень сразу показывает, что справа от x = 10 ничего нет)
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT * FROM demo_gist_decay WHERE pos <@ box '((50,0),(100,100))';
+
 -- ---------------------------------------------------------------------
 -- Уборка
 -- ---------------------------------------------------------------------
--- DROP TABLE demo_shops; DROP TABLE demo_booking;
+-- DROP TABLE demo_shops; DROP TABLE demo_booking; DROP TABLE demo_gist_decay;
