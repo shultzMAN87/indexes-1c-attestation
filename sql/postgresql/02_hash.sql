@@ -50,6 +50,10 @@ SELECT itemoffset, ctid AS heap_tid, data AS hash_code
 FROM hash_page_items(get_raw_page('demo_hash_url_hash', 1))
 LIMIT 5;
 
+-- Статистика страницы корзины: живые и мёртвые записи, свободное место
+SELECT live_items, dead_items, free_size, hasho_bucket, hasho_flag
+FROM hash_page_stats(get_raw_page('demo_hash_url_hash', 1));
+
 -- Хеш-функция, которой пользуется индекс для text
 SELECT url, hashtext(url) AS hash_code
 FROM demo_hash WHERE id = 1;
@@ -81,8 +85,44 @@ SELECT * FROM demo_hash ORDER BY url LIMIT 10;
 -- CREATE UNIQUE INDEX ON demo_hash USING hash (url);       -- hash не поддерживает UNIQUE
 -- CREATE INDEX ON demo_hash USING hash (url, id);          -- и составные ключи
 
+-- NULL в hash-индекс не попадает → IS NULL по нему не ищется (Seq Scan)
+ALTER TABLE demo_hash ALTER COLUMN url DROP NOT NULL;
+INSERT INTO demo_hash (url) SELECT NULL FROM generate_series(1, 10);
+ANALYZE demo_hash;
+
+EXPLAIN (COSTS OFF)
+SELECT * FROM demo_hash WHERE url IS NULL;
+
+-- Index Only Scan невозможен: в индексе хеш-код, а не значение.
+-- Даже при SELECT url — Index Scan (или Bitmap) с походом в кучу
+EXPLAIN (COSTS OFF)
+SELECT url FROM demo_hash
+WHERE url = 'https://example.com/catalog/' || md5('1') || '/' || md5('7') || '?page=1';
+
 -- Зато поддерживает EXCLUDE с оператором =  (то есть уникальность другим способом)
 ALTER TABLE demo_hash ADD CONSTRAINT demo_hash_url_excl EXCLUDE USING hash (url WITH =);
+ALTER TABLE demo_hash DROP CONSTRAINT demo_hash_url_excl;   -- чтобы не мешал разделу 4
+
+-- ---------------------------------------------------------------------
+-- 4. Удаления: корзины не убывают, файл не сжимается
+-- ---------------------------------------------------------------------
+-- До удаления
+SELECT pg_size_pretty(pg_relation_size('demo_hash_url_hash')) AS size,
+       (SELECT maxbucket + 1 FROM hash_metapage_info(get_raw_page('demo_hash_url_hash', 0))) AS buckets;
+
+DELETE FROM demo_hash WHERE id % 10 <> 0;   -- удалить 90% строк
+VACUUM demo_hash;
+
+-- После VACUUM: размер и число корзин те же; страницы переполнения освобождены
+-- (помечены в битовой карте) и пойдут под новые записи
+SELECT pg_size_pretty(pg_relation_size('demo_hash_url_hash')) AS size,
+       (SELECT maxbucket + 1 FROM hash_metapage_info(get_raw_page('demo_hash_url_hash', 0))) AS buckets;
+
+-- Сжать файл и пересчитать число корзин — только перестроением
+REINDEX INDEX demo_hash_url_hash;
+
+SELECT pg_size_pretty(pg_relation_size('demo_hash_url_hash')) AS size,
+       (SELECT maxbucket + 1 FROM hash_metapage_info(get_raw_page('demo_hash_url_hash', 0))) AS buckets;
 
 -- ---------------------------------------------------------------------
 -- Уборка
