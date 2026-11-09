@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRIN в PostgreSQL — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:14px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+button.go{background:#ea580c;border-color:#ea580c;color:#fff}
+button.go:hover{background:#c2410c}
+input[type=date]{font:inherit;font-size:14px;padding:4px 6px;border:1px solid #d1d5db;border-radius:8px}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li.cur{color:#9a3412;font-weight:700}
+.stat{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;margin:6px 0 10px}
+.stat span{background:#f3f4f6;border-radius:6px;padding:2px 8px}
+.stat b{font-family:Consolas,monospace}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.heap{display:flex;flex-wrap:wrap;gap:8px}
+.rng{border:1px solid #e5e7eb;border-radius:8px;padding:4px;background:#f9fafb}
+.rng .rh{font-size:11px;color:#6b7280;margin:0 2px 3px}
+.rng.pass{border-color:#ea580c;background:#fff7ed}
+.rng.cut{opacity:.5}
+.rng.nosum{border:2px dashed #ca8a04;background:#fefce8}
+.pgs{display:flex;gap:3px}
+.pg{border:1px solid #d1d5db;border-radius:5px;background:#fff;padding:2px 3px;font-family:Consolas,monospace;font-size:10px;line-height:1.35;min-width:36px}
+.pg .pn{color:#9ca3af;font-size:9px}
+.pg.read{border:2px solid #2563eb;box-shadow:0 0 0 2px #bfdbfe}
+.r{display:block;border-radius:3px;padding:0 2px}
+.r.hit{background:#dcfce7;color:#166534;font-weight:700}
+.r.drop{background:#fee2e2;color:#991b1b}
+.r.out{background:#fde68a;color:#92400e;font-weight:700}
+.r.new{background:#dbeafe;color:#1e40af}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{padding:3px 6px;border-bottom:1px solid #f3f4f6;text-align:left}
+th{color:#6b7280;font-weight:600;font-size:11px}
+td.mono{font-family:Consolas,monospace}
+tr.pass td{background:#fed7aa}
+tr.cut td{color:#9ca3af}
+tr.cur td{background:#fef3c7}
+tr.nosum td{background:#fefce8;color:#92400e}
+.box{border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;background:#fff;font-size:12px}
+.box.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.box .hd{font-size:11px;color:#6b7280;margin-bottom:4px}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>BRIN — сводки по диапазонам блоков</h1>
+<p class="sub">Таблица событий <code>events(ts date)</code> на 32 страницах, по 4 строки на странице, индекс <code>USING brin (ts)</code>. BRIN не ищет строки — он <b>отбрасывает диапазоны страниц</b>, где нужных значений быть не может. Задайте условие и идите по шагам кнопкой «Дальше» или стрелками ← →. К разделу 3.1 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Запрос:</span> ts BETWEEN <input type="date" id="d1"> AND <input type="date" id="d2">
+  <button onclick="preset(9,9)">1 день</button><button onclick="preset(20,26)">неделя</button><button onclick="preset(0,30)">месяц</button>
+  <button class="go" onclick="run()">Выполнить</button>
+</div>
+<div class="ctrl">
+  <span class="lbl">Порядок строк в таблице:</span>
+  <button id="o-ord" onclick="setOrder(false)">по времени (журнал)</button>
+  <button id="o-shuf" onclick="setOrder(true)">перемешан</button>
+  <span class="lbl" style="margin-left:10px">pages_per_range:</span>
+  <button id="p-2" onclick="setPpr(2)">2</button><button id="p-4" onclick="setPpr(4)">4</button><button id="p-8" onclick="setPpr(8)">8</button>
+  <span class="lbl" style="margin-left:10px">Класс:</span>
+  <button id="c-mm" onclick="setCls('mm')"><code>minmax</code></button><button id="c-multi" onclick="setCls('multi')"><code>minmax_multi</code></button>
+</div>
+<div class="ctrl">
+  <span class="lbl">Изменения:</span>
+  <button onclick="outlier()">UPDATE: «выброс» в середину таблицы</button>
+  <button onclick="appendRows()">INSERT 2 новых страниц в конец</button>
+  <button onclick="summarize()">VACUUM / <code>brin_summarize_new_values()</code></button>
+  <button onclick="resetAll()">Сбросить</button>
+</div>
+
+<div class="sql" id="sql"></div>
+<div class="stat" id="stat"></div>
+
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<div class="grid">
+  <div>
+    <h2>Таблица (куча): страницы, сгруппированные в диапазоны блоков</h2>
+    <div class="heap" id="heap"></div>
+  </div>
+  <div>
+    <h2>Индекс BRIN</h2>
+    <div class="box" id="meta"></div>
+    <div style="height:8px"></div>
+    <div class="box" id="sums"></div>
+  </div>
+</div>
+
+<div class="leg">
+  <span><i style="background:#fed7aa;border-color:#ea580c"></i>сводка пересекается с условием</span>
+  <span><i style="border:2px dashed #ca8a04;background:#fefce8"></i>диапазон без сводки</span>
+  <span><i style="border:2px solid #2563eb"></i>страница читается</span>
+  <span><i style="background:#dcfce7"></i>строка подходит</span>
+  <span><i style="background:#fee2e2"></i>отброшена перепроверкой</span>
+  <span><i style="background:#fde68a"></i>«выброс»</span>
+</div>
+<p class="note">Масштаб: по умолчанию <code>pages_per_range = 128</code> (1 МБ таблицы на одну сводку), и на таблицу в 325 МБ приходится около 330 сводок — десятки килобайт. Здесь диапазон — 2–8 страниц, чтобы всё было видно. Кроме <code>minmax</code> и <code>minmax_multi</code> есть <code>bloom</code> (равенство по значениям без порядка) и <code>inclusion</code> (для <code>box</code>, <code>inet</code>, диапазонов).</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const clone = o => JSON.parse(JSON.stringify(o));
+const BASE = Date.UTC(2026, 2, 1), DAY = 86400000;
+const dstr = d => { const t = new Date(BASE + d * DAY); return String(t.getUTCDate()).padStart(2, '0') + '.' + String(t.getUTCMonth() + 1).padStart(2, '0'); };
+const iso = d => new Date(BASE + d * DAY).toISOString().slice(0, 10);
+const fromIso = s => Math.round((Date.parse(s) - BASE) / DAY);
+let rows, npages, ppr = 4, shuffled = false, cls = 'mm', summ, steps = [], si = 0;
+
+function rng(seed){ return () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }; }
+function resetAll(){
+  npages = 32;
+  let ds = []; for (let i = 0; i < 128; i++) ds.push(Math.floor(i / 2));
+  if (shuffled){ const r = rng(7); for (let i = ds.length - 1; i > 0; i--){ const j = Math.floor(r() * (i + 1)); [ds[i], ds[j]] = [ds[j], ds[i]]; } }
+  rows = ds.map((d, i) => ({p: Math.floor(i / 4), s: i % 4 + 1, d, tag: ''}));
+  summ = {};
+  for (let r = 0; r < npages / ppr; r++) summ[r] = summaryOf(r);
+  refresh();
+}
+function rowsOfRange(r){ return rows.filter(x => Math.floor(x.p / ppr) === r); }
+function intervals(vals){
+  const v = [...new Set(vals)].sort((a, b) => a - b);
+  if (!v.length) return [];
+  if (cls === 'mm') return [[v[0], v[v.length - 1]]];
+  // minmax_multi: режем по самым большим разрывам, не больше 3 интервалов
+  const gaps = v.slice(1).map((x, i) => [x - v[i], i]).filter(g => g[0] > 3).sort((a, b) => b[0] - a[0]).slice(0, 2).map(g => g[1]).sort((a, b) => a - b);
+  const out = []; let st = 0;
+  gaps.forEach(i => { out.push([v[st], v[i]]); st = i + 1; });
+  out.push([v[st], v[v.length - 1]]);
+  return out;
+}
+function summaryOf(r){ return intervals(rowsOfRange(r).map(x => x.d)); }
+function setOrder(s){ shuffled = s; resetAll(); }
+function setPpr(n){ ppr = n; const keepRows = rows; summ = {}; for (let r = 0; r < Math.ceil(npages / ppr); r++) summ[r] = (r + 1) * ppr <= 32 ? summaryOf(r) : null; refresh(); }
+function setCls(c){ cls = c; Object.keys(summ).forEach(r => { if (summ[r]) summ[r] = summaryOf(+r); }); refresh(); }
+function preset(a, b){ $('d1').value = iso(a); $('d2').value = iso(b); run(); }
+function corr(){
+  // корреляция между физическим порядком строк и порядком значений
+  // как в pg_stats: корреляция рангов (физическая позиция строки ↔ место значения при сортировке)
+  const n = rows.length, xs = rows.map((_, i) => i);
+  const order = rows.map((r, i) => [r.d, i]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const ys = new Array(n); order.forEach(([, i], k) => ys[i] = k);
+  const mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++){ sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; }
+  return sxy / Math.sqrt(sxx * syy);
+}
+function refresh(){
+  $('o-ord').classList.toggle('sel', !shuffled); $('o-shuf').classList.toggle('sel', shuffled);
+  [2,4,8].forEach(x => $('p-' + x).classList.toggle('sel', x === ppr));
+  $('c-mm').classList.toggle('sel', cls === 'mm'); $('c-multi').classList.toggle('sel', cls === 'multi');
+  run();
+}
+
+function outlier(){
+  const p = Math.min(9, npages - 1), row = rows.find(x => x.p === p && x.s === 2);
+  row.d = 305; row.tag = 'out';
+  const r = Math.floor(p / ppr);
+  if (summ[r]) summ[r] = cls === 'mm' ? [[Math.min(summ[r][0][0], 305), Math.max(summ[r][summ[r].length - 1][1], 305)]] : summaryOf(r);
+  steps = [];
+  add('UPDATE: выброс', `Строка на странице ${p} получила дату <b>${dstr(305)}</b> — так бывает, когда <code>UPDATE</code> или вставка занимают место, освободившееся после <code>DELETE</code>. При записи в диапазон с готовой сводкой BRIN сразу <b>расширяет</b> её: ` +
+    (cls === 'mm' ? `у диапазона ${r} теперь <code>min…max</code> = ${dstr(summ[r][0][0])}…${dstr(summ[r][0][1])} — почти весь год. Одна строка испортила сводку: теперь диапазон подходит почти под любой запрос. Включите <code>minmax_multi</code> — он хранит несколько интервалов и терпит выбросы.`
+                   : `<code>minmax_multi</code> хранит несколько интервалов: ${summ[r].map(iv => dstr(iv[0]) + '…' + dstr(iv[1])).join(' ∪ ')}. Выброс стал отдельной точкой и не раздувает основной интервал.`) + ' Выполните запрос, чтобы увидеть последствия.', {cur: r});
+  go(0);
+}
+function appendRows(){
+  const maxd = Math.max(...rows.filter(x => x.tag !== 'out').map(x => x.d));
+  for (let p = npages; p < npages + 2; p++) for (let s = 1; s <= 4; s++) rows.push({p, s, d: maxd + 1 + Math.floor(((p - npages) * 4 + s - 1) / 2), tag: 'new'});
+  npages += 2;
+  const nr = Math.ceil(npages / ppr);
+  for (let r = 0; r < nr; r++) if (!(r in summ)) summ[r] = null;
+  steps = [];
+  add('INSERT в конец', `В конец таблицы дописаны 2 страницы (${npages - 2}, ${npages - 1}) со свежими датами. Они попали в диапазон, у которого <b>ещё нет сводки</b>: BRIN не строит сводку при каждой вставке в новый диапазон. Пока её нет, такой диапазон считается подходящим <b>для любого запроса</b> и читается целиком. Сводку построят <code>VACUUM</code>/autovacuum, функция <code>brin_summarize_new_values()</code> или параметр индекса <code>autosummarize = on</code>.`, {});
+  go(0);
+}
+function summarize(){
+  const made = [];
+  Object.keys(summ).forEach(r => { if (!summ[r]){ summ[r] = summaryOf(+r); made.push(r); } });
+  steps = [];
+  add('Сводки построены', made.length ? `Построены сводки для диапазонов ${made.join(', ')}: ${made.map(r => summ[r].map(iv => dstr(iv[0]) + '…' + dstr(iv[1])).join(' ∪ ')).join('; ')}. Теперь эти диапазоны отсекаются как обычные.` : 'Все диапазоны уже имеют сводки — делать нечего. (Сводки существующих диапазонов VACUUM не сужает: после удаления строк <code>min…max</code> остаётся прежним; пересчитать — <code>brin_desummarize_range()</code> + повторное построение или <code>REINDEX</code>.)', {});
+  go(0);
+}
+
+function add(title, text, hl){ steps.push({title, text, s: {rows: clone(rows), npages, summ: clone(summ), hl: Object.assign({cur: null, meta: false, sums: {}, read: [], rowst: {}}, hl)}}); }
+function run(){
+  let a = fromIso($('d1').value), b = fromIso($('d2').value);
+  if (isNaN(a)) a = 9; if (isNaN(b)) b = 9;
+  if (a > b) [a, b] = [b, a];
+  $('sql').textContent = `SELECT * FROM events WHERE ts BETWEEN '${iso(a)}' AND '${iso(b)}';`;
+  const nr = Math.ceil(npages / ppr);
+  const c = corr();
+  $('stat').innerHTML = `<span>pg_stats.correlation ≈ <b>${c.toFixed(2)}</b></span><span>сводок: <b>${nr}</b> на ${npages} страниц</span><span>строк: <b>${rows.length}</b></span>`;
+  steps = [];
+  add('Метастраница и revmap', `BRIN — <b>не дерево</b>. Метастраница (блок 0) хранит <code>pages_per_range = ${ppr}</code>; дальше <b>карта диапазонов</b> (revmap: «диапазон № → где его сводка») и страницы со сводками. На ${npages} страниц таблицы — всего ${nr} сводок, поэтому их читают <b>все подряд</b>: искать среди них нечего, они и так крошечные.`, {meta: true});
+  const sums = {}, pass = [], cut = [], nos = [];
+  for (let r = 0; r < nr; r++){
+    const s = summ[r];
+    if (!s){ sums[r] = 'nosum'; pass.push(r); nos.push(r); continue; }
+    const ok = s.some(iv => iv[0] <= b && iv[1] >= a);
+    sums[r] = ok ? 'pass' : 'cut'; (ok ? pass : cut).push(r);
+  }
+  let t = `Для каждой сводки проверяем: пересекается ли ${cls === 'mm' ? '<code>min…max</code>' : 'хоть один интервал'} с условием ${dstr(a)}…${dstr(b)}? `;
+  t += pass.length ? `Да — диапазоны <b>${pass.join(', ')}</b>${nos.length ? ` (из них ${nos.join(', ')} — без сводки, подходят всегда)` : ''}. ` : 'Ни один не подходит. ';
+  t += cut.length ? `Нет — ${cut.join(', ')}: их страницы <b>не читаются</b>.` : 'Отбросить <b>нечего</b>.';
+  if (shuffled && cut.length < 2) t += ' Строки перемешаны, поэтому в каждом диапазоне есть и ранние, и поздние даты: <code>min…max</code> у всех покрывает почти весь период. Без корреляции с физическим порядком BRIN бесполезен.';
+  add('Проверка сводок', t, {meta: true, sums: clone(sums)});
+  const read = [];
+  pass.forEach(r => { for (let p = r * ppr; p < Math.min((r + 1) * ppr, npages); p++) read.push(p); });
+  add('Неточная битовая карта', `Битовая карта строится <b>не из строк, а из страниц</b>: «читать все ${read.length} страниц диапазонов ${pass.join(', ') || '—'}». Где внутри диапазона лежат нужные строки, BRIN не знает — у него только сводка. Это <b>неточная (lossy)</b> карта: в плане <code>Bitmap Heap Scan</code> с <code>Heap Blocks: lossy=${read.length}</code>.`, {sums: clone(sums), read});
+  const rowst = {};
+  let hit = 0, drop = 0;
+  rows.forEach(x => { if (read.includes(x.p)){ if (x.d >= a && x.d <= b){ rowst[x.p + ':' + x.s] = 'hit'; hit++; } else { rowst[x.p + ':' + x.s] = 'drop'; drop++; } } });
+  add('Bitmap Heap Scan + Recheck', `Страницы читаются целиком, <b>каждая строка перепроверяется</b>: подходит ${hit}, отброшено ${drop} — в плане <code>Rows Removed by Index Recheck: ${drop}</code>.`, {sums: clone(sums), read, rowst});
+  const verdict = read.length >= npages * 0.75 ? 'Почти вся таблица — планировщик предпочтёт <code>Seq Scan</code>.' : read.length <= npages / 4 ? 'Это и есть сила BRIN: индекс в десятки килобайт отсекает большую часть таблицы.' : '';
+  add('Итог', `Прочитано страниц таблицы: <b>${read.length}</b> из ${npages} (полный просмотр — все ${npages}), строк в результате — ${hit}, лишних прочитано — ${drop}. ${verdict} В скрипте методички (5 млн событий): B-tree — 107 МБ, BRIN — 32 КБ; выборка за день — 12 мс через BRIN против 387 мс полного просмотра.`, {sums: clone(sums), read, rowst});
+  go(0);
+}
+
+function go(i){
+  si = Math.max(0, Math.min(steps.length - 1, i));
+  const st = steps[si], s = st.s, hl = s.hl;
+  $('cap').innerHTML = `<b class="t">Шаг ${si + 1}. ${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((x, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${x.title}</li>`).join('');
+  const nr = Math.ceil(s.npages / ppr);
+  let h = '';
+  for (let r = 0; r < nr; r++){
+    const st2 = hl.sums[r] || (s.summ[r] ? '' : 'nosum');
+    h += `<div class="rng ${st2}"><div class="rh">диапазон ${r} · стр. ${r * ppr}–${Math.min((r + 1) * ppr, s.npages) - 1}</div><div class="pgs">`;
+    for (let p = r * ppr; p < Math.min((r + 1) * ppr, s.npages); p++){
+      h += `<div class="pg ${hl.read.includes(p) ? 'read' : ''}"><div class="pn">стр. ${p}</div>` +
+        s.rows.filter(x => x.p === p).map(x => `<span class="r ${hl.rowst[x.p + ':' + x.s] || x.tag}">${dstr(x.d)}</span>`).join('') + '</div>';
+    }
+    h += '</div></div>';
+  }
+  $('heap').innerHTML = h;
+  $('meta').className = 'box ' + (hl.meta ? 'cur' : '');
+  $('meta').innerHTML = `<div class="hd">блок 0 · метастраница</div><code>pages_per_range = ${ppr}</code> · класс <code>${cls === 'mm' ? 'minmax' : 'minmax_multi'}</code><div class="hd" style="margin-top:4px">блок 1 · revmap: диапазон → TID сводки</div>`;
+  $('sums').innerHTML = '<div class="hd">страницы сводок</div><table><tr><th>№</th><th>страницы</th><th>сводка</th></tr>' +
+    Array.from({length: nr}, (_, r) => {
+      const sm = s.summ[r];
+      const c = hl.sums[r] || (sm ? '' : 'nosum');
+      return `<tr class="${c}"><td>${r}</td><td>${r * ppr}–${Math.min((r + 1) * ppr, s.npages) - 1}</td><td class="mono">${sm ? sm.map(iv => iv[0] === iv[1] ? dstr(iv[0]) : dstr(iv[0]) + '…' + dstr(iv[1])).join(' ∪ ') : 'нет сводки'}</td></tr>`;
+    }).join('') + '</table>';
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+$('d1').value = iso(9); $('d2').value = iso(9);
+$('d1').min = $('d2').min = iso(0); $('d1').max = $('d2').max = iso(364);
+$('d1').addEventListener('change', run); $('d2').addEventListener('change', run);
+resetAll();
+</script>
+</body>
+</html>

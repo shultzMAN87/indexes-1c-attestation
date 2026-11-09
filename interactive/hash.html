@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hash-индекс в PostgreSQL — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1100px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:16px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+button.go{background:#ea580c;border-color:#ea580c;color:#fff}
+button.go:hover{background:#c2410c}
+select,input[type=text]{font:inherit;font-size:14px;padding:5px 6px;border:1px solid #d1d5db;border-radius:8px;font-family:Consolas,monospace}
+input[type=text]{width:230px}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+@media (max-width:760px){.slist{columns:1}}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li:hover{color:#111827}
+.slist li.cur{color:#9a3412;font-weight:700}
+.meta{display:inline-flex;gap:6px;flex-wrap:wrap;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;font-size:12px;background:#fff}
+.meta.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.meta .hd{font-size:11px;color:#6b7280;width:100%}
+.it{display:inline-block;font-family:Consolas,monospace;font-size:12px;padding:1px 6px;border-radius:5px;background:#f3f4f6;border:1px solid #e5e7eb;margin:1px 2px;white-space:nowrap}
+.it .t{color:#6b7280;font-size:11px}
+.it.cmp{background:#fef3c7;border-color:#fcd34d}
+.it.pick{background:#fed7aa;border-color:#ea580c;color:#9a3412;font-weight:700}
+.it.hit{background:#dcfce7;border-color:#86efac;color:#166534;font-weight:700}
+.it.new{background:#dbeafe;border-color:#60a5fa;color:#1e40af;font-weight:700}
+.it.no{opacity:.4}
+.buckets{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
+.bk{border:1px solid #e5e7eb;border-radius:10px;padding:6px;background:#f9fafb;min-width:150px}
+.bk.cur{border-color:#ea580c;background:#fff7ed}
+.bk.new{border:2px dashed #16a34a}
+.bk .bh{font-size:12px;font-weight:600;margin-bottom:4px}
+.bk .bh span{font-weight:400;color:#6b7280}
+.page{border:1px solid #d1d5db;border-radius:8px;background:#fff;padding:4px 6px;font-size:12px;transition:all .15s}
+.page .hd{font-size:11px;color:#6b7280;margin-bottom:3px}
+.page.vis{border-color:#fdba74;background:#fffbf5}
+.page.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.page.ovf{border-style:dashed}
+.arrow{text-align:center;color:#9ca3af;font-size:11px;line-height:1.2;margin:2px 0}
+.empty{color:#9ca3af;font-size:11px}
+.heap{display:flex;gap:10px;flex-wrap:wrap}
+.hp{border:1px solid #d1d5db;border-radius:8px;padding:4px 8px;font-size:12px;min-width:200px;background:#fff}
+.hp .hd{font-size:11px;color:#6b7280;margin-bottom:2px}
+.hp.read{border:2px solid #2563eb;box-shadow:0 0 0 3px #bfdbfe}
+.hr{font-family:Consolas,monospace;padding:1px 4px;border-radius:4px;display:inline-block}
+.hr.hit{background:#dcfce7;color:#166534;font-weight:700}
+.hr.drop{background:#fee2e2;color:#991b1b;text-decoration:line-through}
+.hr.new{background:#dbeafe;color:#1e40af;font-weight:700}
+.calc{font-family:Consolas,monospace;font-size:13px;background:#fff;border:1px solid #fdba74;border-radius:8px;padding:6px 10px;margin-top:8px;display:inline-block}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>Hash — корзины по хеш-коду</h1>
+<p class="sub">Индекс <code>USING hash (url)</code>. Учебная модель: на странице корзины помещается 3 записи, корзина делится, когда записей становится больше 3 × число корзин. Хеш-функция — учебная (FNV-1a, 32 бита), принцип тот же, что у <code>hashtext</code>. Идите по шагам кнопкой «Дальше» или стрелками ← →. К разделу 3.1 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Операция:</span>
+  <button id="op-eq" onclick="setOp('eq')"><code>=</code> поиск</button>
+  <button id="op-ins" onclick="setOp('ins')"><code>INSERT</code> и деление корзины</button>
+  <button id="op-like" onclick="setOp('like')"><code>LIKE 'abc%'</code> / диапазон — почему нельзя</button>
+</div>
+<div class="ctrl">
+  <span id="f-eq">url = <select id="q"></select></span>
+  <span id="f-ins">INSERT url = <input type="text" id="k" list="sugg" value="shop.ru/news"> <span class="lbl">подсказки в списке: вставьте 2–3 строки подряд</span></span>
+  <datalist id="sugg"></datalist>
+  <span id="f-like">url LIKE <input type="text" id="pref" value="shop.ru/item/100" style="width:160px">%</span>
+  <button class="go" onclick="run()">Выполнить</button>
+  <button onclick="resetAll()">Сбросить</button>
+</div>
+
+<div class="sql" id="sql"></div>
+
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<h2>Индекс: метастраница и корзины (основная страница + цепочка страниц переполнения)</h2>
+<div id="idx"></div>
+
+<h2>Таблица (куча)</h2>
+<div class="heap" id="heap"></div>
+
+<div class="leg">
+  <span><i style="border:2px solid #ea580c;background:#fff7ed"></i>текущая страница / корзина</span>
+  <span><i style="background:#fed7aa;border-color:#ea580c"></i>хеш-код совпал</span>
+  <span><i style="background:#fef3c7;border-color:#fcd34d"></i>сравнивается</span>
+  <span><i style="background:#dbeafe;border-color:#60a5fa"></i>новое / переехало</span>
+  <span><i style="background:#dcfce7"></i>строка в результате</span>
+  <span><i style="background:#fee2e2"></i>отброшена перепроверкой</span>
+  <span><i style="border:1px dashed #6b7280"></i>страница переполнения</span>
+</div>
+<p class="note">Что упрощено: настоящая страница вмещает сотни пар «код → ctid»; кроме корзин и страниц переполнения в индексе есть страницы битовой карты (учёт свободных страниц переполнения); новые корзины выделяются группами («точками расщепления»), а не по одной странице. Хеш-функция в PostgreSQL другая (<code>hashtext</code>, <code>hashint8</code> …), но тоже даёт 32-битный код.</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const CAP = 3, FF = 3;
+const clone = o => JSON.parse(JSON.stringify(o));
+const $ = id => document.getElementById(id);
+const hex = h => '0x' + h.toString(16).toUpperCase().padStart(8, '0');
+const bin = (v, n) => v.toString(2).padStart(n, '0');
+function hashtext(s){ let h = 0x811c9dc5; for (const ch of s){ h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h >>> 0; }
+const INIT = ['shop.ru/item/1049599','shop.ru/item/1001','shop.ru/item/1002','shop.ru/cart','shop.ru/item/1003','shop.ru/help','shop.ru/item/2048','shop.ru/item/4096','shop.ru/item/1212382','shop.ru/item/1005','shop.ru/item/777'];
+const SUGG = ['shop.ru/news','shop.ru/item/1004','shop.ru/about','shop.ru/item/31337','shop.ru/contacts','shop.ru/item/5000','shop.ru/item/6000','shop.ru/sale'];
+let I, R, op = 'eq', steps = [], si = 0;
+
+function bucketOf(h){ let b = h & I.highmask; if (b > I.maxbucket) b = b & I.lowmask; return b; }
+function nbits(){ return Math.max(2, I.highmask.toString(2).length); }
+
+function resetAll(){
+  I = {maxbucket: 3, highmask: 7, lowmask: 3, ntuples: 0, buckets: [], nextBlk: 5, free: []};
+  for (let b = 0; b < 4; b++) I.buckets.push({no: b, primary: b + 1, pages: [{blk: b + 1, items: []}]});
+  R = [];
+  INIT.forEach(u => { const tid = heapAdd(u); placeItem(hashtext(u), tid); });
+  setOp(op);
+}
+function heapAdd(u){
+  const n = R.length, tid = `(${Math.floor(n / 4)},${n % 4 + 1})`;
+  R.push({tid, url: u}); return tid;
+}
+function placeItem(h, tid){ // returns {blk, idx, newPage}
+  const bk = I.buckets[bucketOf(h)];
+  let pg = bk.pages.find(p => p.items.length < CAP), newPage = false;
+  if (!pg){ pg = {blk: I.free.length ? I.free.shift() : I.nextBlk++, items: []}; bk.pages.push(pg); newPage = true; }
+  pg.items.push({h, tid});
+  pg.items.sort((a, b) => a.h - b.h);
+  I.ntuples++;
+  return {blk: pg.blk, idx: pg.items.findIndex(it => it.tid === tid), newPage, bucket: bk.no};
+}
+
+function setOp(o){
+  op = o;
+  ['eq','ins','like'].forEach(x => $('op-' + x).classList.toggle('sel', x === o));
+  $('f-eq').style.display = o === 'eq' ? '' : 'none';
+  $('f-ins').style.display = o === 'ins' ? '' : 'none';
+  $('f-like').style.display = o === 'like' ? '' : 'none';
+  const cur = $('q').value;
+  $('q').innerHTML = R.map(r => r.url).concat(['shop.ru/item/9999']).map(u => `<option value="${u}">${u}${R.some(r => r.url === u) ? '' : ' (нет в таблице)'}</option>`).join('');
+  $('q').value = R.some(r => r.url === cur) ? cur : 'shop.ru/item/1049599';
+  $('sugg').innerHTML = SUGG.filter(u => !R.some(r => r.url === u)).map(u => `<option value="${u}">`).join('');
+  if (o === 'ins'){
+    steps = [];
+    $('sql').textContent = `INSERT INTO pages (url) VALUES ('${$('k').value}');`;
+    add('Готово к вставке', 'Нажмите <b>«Выполнить»</b>. Вставка меняет индекс: запись попадёт в корзину, при переполнении страницы появится страница переполнения, а при превышении порога добавится новая корзина. Вставьте несколько строк подряд и посмотрите, как растёт число корзин.', {});
+    go(0);
+  } else run();
+}
+
+// ---------- шаги ----------
+function add(title, text, hl){
+  steps.push({title, text, s: {I: clone(I), R: clone(R), hl: Object.assign({items: {}, pages: {}, rows: {}, hread: [], bucket: null, meta: false, newB: null, calc: ''}, hl)}});
+}
+function calcHtml(u, h){
+  const n = nbits();
+  const hb = h & I.highmask, b = bucketOf(h);
+  let s = `hashtext('${u}') = ${hex(h)} = …${bin(h & 0xFF, 8)}₂<br>`;
+  s += `h & highmask (${bin(I.highmask, n)}₂) = ${bin(hb, n)}₂ = ${hb}`;
+  if (hb > I.maxbucket) s += ` &gt; maxbucket (${I.maxbucket}) → h & lowmask (${bin(I.lowmask, n)}₂) = ${b}`;
+  return s + ` → <b>корзина ${b}</b>`;
+}
+function hashSteps(u, h){
+  add('Хеш значения', `Вычисляем хеш-функцию от искомого значения: <b>${hex(h)}</b>. Это 4-байтовый код — в индексе хранится именно он, а не сама строка (строка может быть и 2000 байт). Поэтому hash-индекс по длинным значениям компактнее B-tree.`, {calc: `hashtext('${u}') = ${hex(h)}`});
+  const hb = h & I.highmask, b = bucketOf(h);
+  let t = `Метастраница (блок 0) хранит <b>maxbucket = ${I.maxbucket}</b> (номер последней корзины) и две маски. Номер корзины — это младшие биты кода: <code>h & highmask</code> = ${hb}.`;
+  t += hb > I.maxbucket ? ` Корзины ${hb} ещё нет (она появится при следующих делениях), поэтому берём на бит меньше: <code>h & lowmask</code> = <b>${b}</b>.` : ` Такая корзина есть → <b>корзина ${b}</b>.`;
+  t += ' Никакого перебора и сравнения «больше/меньше»: номер корзины вычисляется.';
+  add('Метастраница → номер корзины', t, {meta: true, calc: calcHtml(u, h), bucket: b});
+  return b;
+}
+
+// ---------- поиск ----------
+function runEq(){
+  const u = $('q').value, h = hashtext(u);
+  $('sql').textContent = `SELECT * FROM pages WHERE url = '${u}';`;
+  const b = hashSteps(u, h);
+  const bk = I.buckets[b], calc = calcHtml(u, h);
+  const found = [], pages = {};
+  bk.pages.forEach((pg, pi) => {
+    const items = {};
+    let any = false;
+    pg.items.forEach((it, j) => { if (it.h === h){ items[pg.blk + ':' + j] = 'pick'; found.push(it); any = true; } else items[pg.blk + ':' + j] = 'cmp'; });
+    pages[pg.blk] = 'cur';
+    let t = pi === 0 ? `Читаем основную страницу <b>корзины ${b}</b> (блок ${pg.blk}). Записи на странице отсортированы по хеш-коду — нужный ищется двоичным поиском. `
+                     : `К корзине прицеплена <b>страница переполнения</b> (блок ${pg.blk}) — корзина не поместилась в одну страницу. Её тоже надо прочитать: записи с тем же кодом могут лежать и здесь. `;
+    t += any ? `Код ${hex(h)} найден: ${pg.items.filter(it => it.h === h).map(it => 'ctid ' + it.tid).join(', ')}.` : `Записей с кодом ${hex(h)} здесь нет.`;
+    if (pi === bk.pages.length - 1) t += ' Цепочка закончилась.';
+    add(pi === 0 ? `Корзина ${b}, блок ${pg.blk}` : `Переполнение, блок ${pg.blk}`, t, {bucket: b, calc, items, pages: Object.assign({}, pages)});
+    pages[pg.blk] = 'vis';
+  });
+  const nIdx = 1 + bk.pages.length;
+  if (!found.length){
+    add('Итог', `Строк нет — и это известно без чтения таблицы. Прочитано страниц индекса: ${nIdx} (метастраница и корзина${bk.pages.length > 1 ? ' с переполнением' : ''}), куча — 0.`, {bucket: b, calc});
+    return;
+  }
+  const rows = {}, hread = [];
+  found.forEach(it => {
+    const r = R.find(x => x.tid === it.tid);
+    rows[it.tid] = r.url === u ? 'hit' : 'drop';
+    const pg = it.tid.slice(1).split(',')[0];
+    if (!hread.includes(pg)) hread.push(pg);
+  });
+  const drop = found.filter(it => rows[it.tid] === 'drop');
+  let t = `Идём в кучу по ${found.map(it => it.tid).join(', ')} и <b>перепроверяем само значение</b>: в индексе только код, а у разных строк он может совпасть.`;
+  if (drop.length){
+    const other = R.find(x => x.tid === drop[0].tid).url;
+    t += ` Здесь именно это: у <code>${other}</code> тот же код ${hex(h)} — это <b>коллизия</b> хеш-функции. Строка отброшена перепроверкой, в <code>EXPLAIN ANALYZE</code> это <code>Rows Removed by Index Recheck: ${drop.length}</code>. Значения разные, общих букв для хеша не существует — совпадение случайное.`;
+  } else t += ' Значение совпало — строка в результате.';
+  const fi = {}; bk.pages.forEach(pg => pg.items.forEach((it, j) => { if (it.h === h) fi[pg.blk + ':' + j] = 'pick'; }));
+  add('Куча и перепроверка', t, {bucket: b, calc, items: fi, rows, hread});
+  add('Итог', `Результат: <b>${found.filter(it => rows[it.tid] === 'hit').map(it => it.tid).join(', ')}</b>. Прочитано: метастраница, ${bk.pages.length} страниц${bk.pages.length > 1 ? 'ы' : 'а'} корзины, ${hread.length} страниц${hread.length > 1 ? 'ы' : 'а'} кучи. Это и есть ответ «почему hash быстрый»: вычислить корзину, прочитать её, проверить строку.`, {bucket: b, calc, items: fi, rows});
+}
+
+// ---------- вставка ----------
+function runIns(){
+  const u = $('k').value.trim();
+  if (!u) return;
+  $('sql').textContent = `INSERT INTO pages (url) VALUES ('${u}');`;
+  const tid = heapAdd(u);
+  add('Строка в кучу', `Строка пишется в кучу: <b>ctid ${tid}</b>. Теперь её адрес нужно положить в индекс.`, {rows: {[tid]: 'new'}, hread: [tid.slice(1).split(',')[0]]});
+  const h = hashtext(u);
+  const b = hashSteps(u, h);
+  const calc = calcHtml(u, h);
+  const r = placeItem(h, tid);
+  const t = r.newPage
+    ? `Все страницы корзины ${b} заполнены (по ${CAP} записи). К цепочке корзины добавляется <b>страница переполнения</b> — блок ${r.blk}${I.nextBlk - 1 === r.blk ? ' (новая, в конце файла)' : ' (свободная, взята из битовой карты)'}. Запись «${hex(h)} → ${tid}» кладётся туда. Чем длиннее цепочка, тем больше страниц читает поиск по этой корзине.`
+    : `На странице корзины ${b} (блок ${r.blk}) есть место. Запись «${hex(h)} → ${tid}» встаёт по порядку хеш-кода — страница остаётся отсортированной.`;
+  add(`Запись в корзину ${b}`, t, {bucket: b, calc, items: {[r.blk + ':' + r.idx]: 'new'}, pages: {[r.blk]: 'cur'}, rows: {[tid]: 'new'}});
+  const nb = I.maxbucket + 1;
+  if (I.ntuples <= FF * nb){
+    add('Итог', `Записей в индексе: ${I.ntuples}, порог деления: ${FF} × ${nb} корзины = ${FF * nb}. Порог не превышен — корзины не делятся.`, {});
+    return;
+  }
+  splitBucket(nb);
+}
+function splitBucket(nb){
+  const before = I.ntuples;
+  const nw = I.maxbucket + 1, n2 = nw.toString(2).length;
+  const old = nw & I.lowmask;
+  add('Порог превышен', `Записей стало <b>${before}</b> &gt; ${FF} × ${nb} корзины = ${FF * nb}. Пора добавить корзину. Делится <b>не та корзина, куда вставляли</b>, а следующая по очереди — <b>корзина ${old}</b> (линейное хеширование: корзины делятся по одной, по кругу, и их число постепенно удваивается). Новая корзина получает номер ${nw} = ${bin(nw, n2)}₂, старая — ${nw} & lowmask = ${old}.`, {meta: true, bucket: old});
+  I.maxbucket = nw;
+  let maskMsg = '';
+  if (nw > I.highmask){ I.lowmask = I.highmask; I.highmask = nw | I.lowmask; maskMsg = ` Номер ${nw} не помещается в highmask — маски сдвигаются на бит: lowmask = ${I.lowmask}, highmask = ${I.highmask}. Число корзин удвоилось — начинается новый «круг» делений.`; }
+  const ob = I.buckets[old];
+  const all = ob.pages.flatMap(p => p.items);
+  const freed = ob.pages.slice(1).map(p => p.blk);
+  const stay = all.filter(it => (it.h & I.highmask) === old), move = all.filter(it => (it.h & I.highmask) === nw);
+  const newBlk = I.nextBlk++;
+  const nbk = {no: nw, pages: []};
+  const pack = list => { const pages = []; list.sort((a, b) => a.h - b.h).forEach(it => { if (!pages.length || pages[pages.length - 1].items.length >= CAP) pages.push({items: []}); pages[pages.length - 1].items.push(it); }); return pages; };
+  const sp = pack(stay), mp = pack(move);
+  const pool = freed.slice();
+  const take = () => pool.length ? pool.shift() : I.nextBlk++;
+  ob.pages = sp.length ? sp : [{items: []}];
+  ob.pages.forEach((p, i) => p.blk = i === 0 ? ob.primary : take());
+  nbk.primary = newBlk;
+  nbk.pages = mp.length ? mp : [{items: []}];
+  nbk.pages.forEach((p, i) => p.blk = i === 0 ? newBlk : take());
+  I.free.push(...pool);
+  I.buckets.push(nbk);
+  const items = {};
+  nbk.pages.forEach(p => p.items.forEach((_, j) => items[p.blk + ':' + j] = 'new'));
+  ob.pages.forEach(p => p.items.forEach((_, j) => items[p.blk + ':' + j] = 'cmp'));
+  let t = `Создаётся <b>корзина ${nw}</b> (блок ${newBlk}). Записи корзины ${old} раскладываются по <b>ещё одному младшему биту</b> кода: <code>h & ${bin(I.highmask, I.highmask.toString(2).length)}₂</code> = ${old} — остаётся, = ${nw} — переезжает.`;
+  t += ` Осталось: ${stay.length}, переехало: <b>${move.length}</b>. Остальные корзины не трогаются — весь индекс не перестраивается.`;
+  t += maskMsg;
+  if (pool.length) t += ` Освободились страницы переполнения ${pool.join(', ')} — они отмечаются в битовой карте как свободные и будут переиспользованы. Файл индекса при этом не уменьшается.`;
+  add(`Новая корзина ${nw}`, t, {meta: true, bucket: old, newB: nw, items});
+  add('Итог', `Корзин стало ${I.maxbucket + 1}, записей — ${I.ntuples}, следующий порог — ${FF * (I.maxbucket + 1)}. Обратного процесса нет: после массового <code>DELETE</code> и <code>VACUUM</code> число корзин не уменьшается, уменьшить индекс может только <code>REINDEX</code>.`, {newB: nw});
+}
+
+// ---------- LIKE ----------
+function runLike(){
+  const p = $('pref').value;
+  $('sql').textContent = `SELECT * FROM pages WHERE url LIKE '${p}%';`;
+  const hits = R.filter(r => r.url.startsWith(p));
+  const items = {}, rows = {}, bset = new Set();
+  I.buckets.forEach(bk => bk.pages.forEach(pg => pg.items.forEach((it, j) => {
+    if (hits.some(r => r.tid === it.tid)){ items[pg.blk + ':' + j] = 'pick'; bset.add(bk.no); }
+  })));
+  hits.forEach(r => rows[r.tid] = 'hit');
+  const list = hits.map(r => `<code>${r.url}</code> → ${hex(hashtext(r.url))} → корзина ${bucketOf(hashtext(r.url))}`).join('<br>');
+  add('Где лежат «соседи»', `Строки, которые начинаются на <code>${p}</code>, — соседи в алфавитном порядке. Но их хеш-коды не имеют ничего общего:<br>${list || '(таких строк нет)'}<br>Они разлетелись по корзинам <b>${[...bset].sort().join(', ') || '—'}</b>. Хеш специально «перемешивает» значения: изменение одного символа меняет весь код.`, {items, rows});
+  add('Вывод', `Чтобы найти строки по префиксу или диапазону, индексу пришлось бы <b>перебрать все значения</b> — а самих значений в нём даже нет, только коды. Поэтому hash-индекс понимает <b>только оператор <code>=</code></b>: нет <code>&lt;</code>, <code>&gt;</code>, <code>BETWEEN</code>, <code>LIKE 'abc%'</code>, <code>ORDER BY</code>. Планировщик выберет <code>Seq Scan</code> или B-tree. По той же причине нет Index Only Scan (значения в индексе нет) и <code>UNIQUE</code>, а <code>NULL</code> в hash-индекс вообще не попадает.`, {items, rows});
+}
+
+function run(){
+  steps = [];
+  if (op === 'eq') runEq(); else if (op === 'ins') runIns(); else runLike();
+  if (op === 'ins') setOpQuiet();
+  go(0);
+}
+function setOpQuiet(){
+  $('q').innerHTML = R.map(r => r.url).concat(['shop.ru/item/9999']).map(u => `<option value="${u}">${u}${R.some(r => r.url === u) ? '' : ' (нет в таблице)'}</option>`).join('');
+  $('sugg').innerHTML = SUGG.filter(u => !R.some(r => r.url === u)).map(u => `<option value="${u}">`).join('');
+  const next = SUGG.find(u => !R.some(r => r.url === u));
+  if (next) $('k').value = next;
+}
+
+// ---------- отрисовка ----------
+function go(i){
+  si = Math.max(0, Math.min(steps.length - 1, i));
+  const st = steps[si];
+  $('cap').innerHTML = `<b class="t">Шаг ${si + 1}. ${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((s, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${s.title}</li>`).join('');
+  draw(st.s);
+}
+function draw(s){
+  const x = s.I, hl = s.hl, n = Math.max(2, x.highmask.toString(2).length);
+  let html = `<div class="meta ${hl.meta ? 'cur' : ''}"><div class="hd">блок 0 · метастраница</div>` +
+    `<span class="it">maxbucket = ${x.maxbucket}</span><span class="it">highmask = ${x.highmask} (${bin(x.highmask, n)}₂)</span><span class="it">lowmask = ${x.lowmask} (${bin(x.lowmask, n)}₂)</span>` +
+    `<span class="it">записей = ${x.ntuples}</span><span class="it">порог = ${FF} × ${x.maxbucket + 1} = ${FF * (x.maxbucket + 1)}</span>` +
+    `${x.free.length ? `<span class="it">свободные стр. переполнения: ${x.free.join(', ')}</span>` : ''}</div>`;
+  if (hl.calc) html += `<div><div class="calc">${hl.calc}</div></div>`;
+  html += '<div class="buckets">' + x.buckets.map(bk => {
+    const cls = bk.no === hl.bucket ? 'cur' : bk.no === hl.newB ? 'new' : '';
+    return `<div class="bk ${cls}"><div class="bh">корзина ${bk.no} <span>(…${bin(bk.no, n)}₂)</span></div>` +
+      bk.pages.map((pg, i) => {
+        const pc = hl.pages[pg.blk] || '';
+        const its = pg.items.length ? pg.items.map((it, j) => `<span class="it ${hl.items[pg.blk + ':' + j] || ''}">${hex(it.h).slice(2)} <span class="t">→ ${it.tid}</span></span>`).join('<br>') : '<span class="empty">пусто</span>';
+        return (i ? '<div class="arrow">↓ цепочка</div>' : '') + `<div class="page ${pc} ${i ? 'ovf' : ''}"><div class="hd">блок ${pg.blk}${i ? ' · переполнение' : ' · основная'} · ${pg.items.length}/${CAP}</div>${its}</div>`;
+      }).join('') + '</div>';
+  }).join('') + '</div>';
+  $('idx').innerHTML = html;
+  const pages = {};
+  s.R.forEach(r => { const p = r.tid.slice(1).split(',')[0]; (pages[p] = pages[p] || []).push(r); });
+  $('heap').innerHTML = Object.entries(pages).map(([p, rows]) =>
+    `<div class="hp ${hl.hread.includes(p) ? 'read' : ''}"><div class="hd">стр. ${p}</div>` + rows.map(r => `<div><span class="hr ${hl.rows[r.tid] || ''}">${r.tid} ${r.url}</span></div>`).join('') + '</div>').join('');
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+$('q').addEventListener('change', run);
+$('pref').addEventListener('change', run);
+resetAll();
+</script>
+</body>
+</html>

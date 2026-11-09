@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GiST для полнотекстового поиска (RD-дерево) — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:14px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+.lex{font-family:Consolas,monospace;font-size:13px;padding:3px 9px}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li.cur{color:#9a3412;font-weight:700}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:24px}
+@media (max-width:980px){.grid{grid-template-columns:1fr}}
+.sig{display:inline-flex;gap:1px;vertical-align:middle}
+.sig b{display:inline-block;width:12px;height:16px;border-radius:2px;background:#f3f4f6;border:1px solid #e5e7eb;font-size:9px;font-weight:400;color:#9ca3af;text-align:center;line-height:16px}
+.sig b.on{background:#374151;border-color:#374151;color:#fff}
+.sig b.qon{background:#ea580c;border-color:#9a3412;color:#fff}
+.sig b.qoff{background:#fff;border:2px solid #dc2626;color:#dc2626}
+.sig.w32 b{width:5px;font-size:0}
+.sig.w32 b.qon,.sig.w32 b.qoff{width:11px;font-size:9px}
+.bitsnum{display:inline-flex;gap:1px}
+.bitsnum span{display:inline-block;width:14px;font-size:9px;color:#9ca3af;text-align:center;font-family:Consolas,monospace}
+.bitsnum span.q{color:#ea580c;font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{padding:4px 6px;border-bottom:1px solid #f3f4f6;text-align:left;vertical-align:middle}
+th{font-size:12px;color:#6b7280;font-weight:600}
+tr.cand td{background:#fef9c3}
+tr.hit td{background:#dcfce7}
+tr.drop td{background:#fee2e2}
+tr.drop .txt{text-decoration:line-through;text-decoration-color:#b91c1c}
+.lx{font-family:Consolas,monospace;font-size:12px;padding:0 5px;border-radius:4px;background:#f3f4f6;margin-right:3px;white-space:nowrap}
+.lx.q{background:#fed7aa;color:#9a3412;font-weight:700}
+.node{border:1px solid #d1d5db;border-radius:8px;background:#fff;padding:5px 8px;font-size:12px;margin-bottom:8px}
+.node .hd{font-size:11px;color:#6b7280;margin-bottom:3px}
+.node.vis{border-color:#fdba74;background:#fffbf5}
+.node.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.node.cut{opacity:.4}
+.ent{display:flex;align-items:center;gap:8px;padding:2px 4px;border-radius:5px;margin:2px 0}
+.ent .nm{font-family:Consolas,monospace;min-width:52px}
+.ent.pass{background:#fed7aa}
+.ent.cut{opacity:.45;text-decoration:line-through}
+.ent.cand{background:#fef9c3}
+.leaves{display:grid;grid-template-columns:1fr;gap:0}
+.map{font-family:Consolas,monospace;font-size:12px;color:#374151;line-height:1.7}
+.map span{white-space:nowrap;margin-right:10px}
+.map span.q{color:#9a3412;font-weight:700;background:#fff7ed;border-radius:4px;padding:0 3px}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>GiST по <code>tsvector</code> — RD-дерево сигнатур</h1>
+<p class="sub">Девять документов, лексемы — реальный вывод <code>to_tsvector('russian', …)</code>. Сигнатура — битовая маска: лексема → хеш → номер бита; документ — <code>OR</code> битов своих лексем; запись в корне — <code>OR</code> сигнатур страницы. Для наглядности сигнатура 16 или 32 бита (в PostgreSQL по умолчанию 992). Выберите лексемы запроса и идите по шагам. К разделу 3.1 («RD-дерево») методички.</p>
+
+<div class="ctrl"><span class="lbl">Лексемы запроса (щёлкните):</span><span id="lexes"></span></div>
+<div class="ctrl">
+  <span class="lbl">Оператор:</span>
+  <button id="op-and" onclick="setOp('and')"><code>&amp;</code> все слова</button>
+  <button id="op-or" onclick="setOp('or')"><code>|</code> хотя бы одно</button>
+  <button id="op-pref" onclick="setOp('pref')"><code>мир:*</code> префикс</button>
+  <span class="lbl" style="margin-left:12px">Сигнатура:</span>
+  <button id="sl-16" onclick="setLen(16)">16 бит</button>
+  <button id="sl-32" onclick="setLen(32)">32 бита</button>
+  <label style="margin-left:12px"><input type="checkbox" id="exact" onchange="run()"> как в PostgreSQL: короткий документ в листе — массив хешей лексем</label>
+</div>
+
+<div class="sql" id="sql"></div>
+
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<h2>Лексема → номер бита (хеш mod длина сигнатуры)</h2>
+<div class="map" id="map"></div>
+
+<div class="grid">
+  <div>
+    <h2>Таблица: документы, лексемы и их сигнатуры</h2>
+    <div id="docs"></div>
+  </div>
+  <div>
+    <h2>Индекс: корень → листья</h2>
+    <div id="tree"></div>
+  </div>
+</div>
+
+<div class="leg">
+  <span><i style="background:#374151"></i>бит = 1</span>
+  <span><i style="background:#ea580c"></i>бит запроса = 1 («может быть»)</span>
+  <span><i style="border:2px solid #dc2626"></i>бит запроса = 0 («точно нет»)</span>
+  <span><i style="background:#fed7aa"></i>ветвь проходит</span>
+  <span><i style="background:#fef9c3"></i>кандидат</span>
+  <span><i style="background:#dcfce7"></i>в результате</span>
+  <span><i style="background:#fee2e2"></i>отброшен перепроверкой (Recheck)</span>
+</div>
+<p class="note">В настоящей базе под записью корня тысячи документов, и <code>OR</code> заполняет почти все 992 бита — корень перестаёт что-либо отсекать (насыщение). Поэтому для поиска по словам обычно берут GIN: он хранит лексему → список строк и не теряет точность.</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const DOCS = [
+  [1,'Война и мир',['войн','мир']],
+  [2,'Мирный договор подписан',['мирн','договор','подписа']],
+  [3,'Миротворец прибыл',['миротворец','приб']],
+  [4,'Горы Памира',['гор','памир']],
+  [5,'Древняя Пальмира',['древн','пальмир']],
+  [6,'Мираж в пустыне',['мираж','пустын']],
+  [7,'Адмирал флота',['адмира','флот']],
+  [8,'Жить в мире и согласии',['жит','мир','соглас']],
+  [9,'Слухи о новых мирах',['слух','мир','нов']]
+];
+const BITS16 = {'мир':5,'войн':2,'жит':9,'соглас':12,'слух':0,'нов':14,'мирн':7,'договор':11,'подписа':3,'миротворец':13,'приб':1,'гор':8,'памир':5,'древн':10,'пальмир':6,'мираж':15,'пустын':4,'адмира':3,'флот':9};
+const BITS32 = Object.assign({}, BITS16, {'памир':21,'флот':25,'адмира':19,'пальмир':22,'приб':17});
+const LEAVES = [['A',[1,8,9]],['B',[2,3,7]],['C',[4,5,6]]];
+const BLK = {A: 1, B: 2, C: 3};
+const ALLLEX = [...new Set(DOCS.flatMap(d => d[2]))];
+let query = new Set(['мир']), op = 'and', len = 16, steps = [], si = 0;
+
+function bits(){ return len === 16 ? BITS16 : BITS32; }
+function docSig(d){ const s = new Set(); DOCS.find(x => x[0] === d)[2].forEach(l => s.add(bits()[l])); return s; }
+function nodeSig(ids){ const s = new Set(); ids.forEach(d => docSig(d).forEach(b => s.add(b))); return s; }
+function qbits(){ return [...query].map(l => bits()[l]); }
+function sigTest(sig){
+  if (op === 'pref') return true;
+  const qb = qbits();
+  if (!qb.length) return false;
+  return op === 'and' ? qb.every(b => sig.has(b)) : qb.some(b => sig.has(b));
+}
+function exactTest(lexes, pref){
+  if (pref || op === 'pref') return true; // массив хешей не умеет префикс
+  const q = [...query];
+  return op === 'and' ? q.every(l => lexes.includes(l)) : q.some(l => lexes.includes(l));
+}
+function realTest(lexes){
+  if (op === 'pref') return lexes.some(l => l.startsWith('мир'));
+  const q = [...query];
+  return op === 'and' ? q.every(l => lexes.includes(l)) : q.some(l => lexes.includes(l));
+}
+
+function setOp(o){ op = o; if (o === 'pref') query = new Set(['мир']); run(); }
+function setLen(n){ len = n; run(); }
+function toggle(l){ if (op === 'pref') op = 'and'; query.has(l) ? query.delete(l) : query.add(l); run(); }
+
+function add(title, text, hl){ steps.push({title, text, hl: Object.assign({cur: null, vis: [], ent: {}, docs: {}, cutLeaves: []}, hl)}); }
+
+function run(){
+  ['and','or','pref'].forEach(x => $('op-' + x).classList.toggle('sel', x === op));
+  [16,32].forEach(x => $('sl-' + x).classList.toggle('sel', x === len));
+  $('lexes').innerHTML = ALLLEX.map(l => `<button class="lex ${query.has(l) && op !== 'pref' ? 'sel' : ''}" onclick="toggle('${l}')">${l}</button>`).join(' ');
+  const qs = op === 'pref' ? `'мир:*'` : `'${[...query].join(op === 'and' ? ' & ' : ' | ')}'`;
+  $('sql').textContent = query.size || op === 'pref' ? `SELECT * FROM docs WHERE tsv @@ to_tsquery('russian', ${qs});` : '-- выберите хотя бы одну лексему';
+  steps = [];
+  if (!query.size && op !== 'pref'){ add('Нет запроса', 'Щёлкните по одной или нескольким лексемам выше.', {}); return go(0); }
+  const exact = $('exact').checked;
+  const qb = qbits();
+  // шаг 1
+  if (op === 'pref'){
+    add('Разбор запроса', 'Запрос <code>мир:*</code> — «любая лексема, которая <b>начинается</b> на мир»: <code>мир</code>, <code>мирн</code>, <code>мираж</code>, <code>миротворец</code>… У каждой из них свой бит, и биты разбросаны хешем случайно — общие буквы ничего не дают. Превратить префикс в набор битов <b>нельзя</b>: <code>consistent</code> на префиксе обязана отвечать «может быть» в каждом узле.', {});
+  } else {
+    add('Разбор запроса', `Слова запроса проходят тот же разбор, что и текст: стоп-слова выброшены, стеммер оставил основы. Каждая лексема → хеш → бит: ${[...query].map(l => `<b>${l} → бит ${bits()[l]}</b>`).join(', ')}. Дальше на всех уровнях дерева проверяются только ${qb.length > 1 ? 'эти биты' : 'этот бит'}${qb.length > 1 ? (op === 'and' ? ' — нужны <b>все</b> (оператор &)' : ' — достаточно <b>одного</b> (оператор |)') : ''}.`, {});
+  }
+  // корень
+  const ent = {}, pass = [], cut = [];
+  LEAVES.forEach(([nm, ids]) => { if (sigTest(nodeSig(ids))){ ent['r:' + nm] = 'pass'; pass.push(nm); } else { ent['r:' + nm] = 'cut'; cut.push(nm); } });
+  let t = 'Читаем <b>корень</b> (блок 0). Запись корня — <code>OR</code> сигнатур всех документов страницы. ';
+  if (op === 'pref') t += 'Для префикса проверить нечего → <b>все ветви проходят</b>.';
+  else {
+    LEAVES.forEach(([nm, ids]) => {
+      const s = nodeSig(ids);
+      const on = qb.filter(b => s.has(b)), off = qb.filter(b => !s.has(b));
+      t += `<br><b>${nm}</b>: ${on.length ? 'бит ' + on.join(', ') + ' = 1' : ''}${on.length && off.length ? '; ' : ''}${off.length ? 'бит ' + off.join(', ') + ' = 0' : ''} → ${ent['r:' + nm] === 'pass' ? 'спускаемся' : '<b>отсечь</b>'}.`;
+    });
+    t += '<br>Бит 0 значит «этой лексемы в поддереве <b>точно нет</b>»: будь хоть один такой документ, его бит попал бы в <code>OR</code>. Бит 1 — только «<b>может быть</b>»: единицу могла поставить любая лексема с тем же номером бита.';
+    if (op === 'and' && qb.length > 1 && pass.length) t += ' Для <code>&</code> есть ловушка <b>смешивания</b>: биты в записи корня могли прийти из <i>разных</i> документов — <code>OR</code> не помнит, какой бит чей.';
+  }
+  add('Корень', t, {cur: 0, vis: [0], ent: Object.assign({}, ent)});
+  const docs = {}, vis = [0], cands = [];
+  pass.forEach(nm => {
+    const ids = LEAVES.find(l => l[0] === nm)[1];
+    vis.push(BLK[nm]);
+    const got = [], no = [];
+    ids.forEach(d => {
+      const lex = DOCS.find(x => x[0] === d)[2];
+      const ok = exact ? exactTest(lex) : sigTest(docSig(d));
+      if (ok){ docs[d] = 'cand'; ent['l:' + d] = 'cand'; got.push(d); cands.push(d); } else { ent['l:' + d] = 'cut'; no.push(d); }
+    });
+    let tt = `Читаем <b>лист ${nm}</b> (блок ${BLK[nm]}). `;
+    tt += exact ? (op === 'pref' ? 'В листе у коротких документов лежит массив 32-битных хешей лексем, но префикс по хешам тоже не проверить — все документы становятся кандидатами. ' : 'Короткий документ лежит в листе <b>массивом полных хешей лексем</b>, а не сигнатурой — сравнивается весь хеш, и случайное совпадение бита уже не обманет. ')
+                : 'Проверяем сигнатуры документов так же, как в корне. ';
+    tt += got.length ? `Кандидаты: <b>${got.map(d => 'D' + d).join(', ')}</b>` : 'Кандидатов нет — страница прочитана зря';
+    tt += no.length ? `; ${no.map(d => 'D' + d).join(', ')} — отсечены.` : '.';
+    add(`Лист ${nm}`, tt, {cur: BLK[nm], vis: vis.slice(), ent: Object.assign({}, ent), docs: Object.assign({}, docs)});
+  });
+  // перепроверка
+  const hit = [], drop = [];
+  cands.forEach(d => { const lex = DOCS.find(x => x[0] === d)[2]; if (realTest(lex)){ docs[d] = 'hit'; hit.push(d); } else { docs[d] = 'drop'; drop.push(d); } });
+  if (cands.length){
+    let tr = `Индекс GiST по <code>tsvector</code> <b>всегда неточный</b>: найденные ctid идут в <code>Bitmap Heap Scan</code>, и условие проверяется по настоящему <code>tsvector</code> строки. `;
+    tr += hit.length ? `Подходят: <b>${hit.map(d => 'D' + d).join(', ')}</b>. ` : 'Не подошёл ни один. ';
+    if (drop.length) tr += `Ложные срабатывания: <b>${drop.map(d => 'D' + d).join(', ')}</b> — ${drop.map(d => `«${DOCS.find(x => x[0] === d)[1]}» (${DOCS.find(x => x[0] === d)[2].join(', ')})`).join('; ')}. В <code>EXPLAIN ANALYZE</code>: <code>Rows Removed by Index Recheck: ${drop.length}</code>.`;
+    add('Перепроверка (Recheck)', tr, {vis: vis.slice(), ent: Object.assign({}, ent), docs: Object.assign({}, docs)});
+  }
+  let fin = `Результат: <b>${hit.length ? hit.map(d => 'D' + d).join(', ') : 'ничего'}</b>. Прочитано страниц индекса: <b>${vis.length}</b> из 4, строк таблицы: <b>${cands.length}</b> из ${DOCS.length}${drop.length ? `, из них ${drop.length} зря` : ''}.`;
+  if (op === 'pref') fin += ' Индекс прочитан целиком и выдал все строки кандидатами — по сути полный перебор через индекс. GIN хранит лексемы отсортированными в B-дереве и просто проходит диапазон «всё, что начинается на мир».';
+  else if (drop.length && !exact) fin += ' Попробуйте 32 бита (меньше коллизий, больше индекс) или включите флажок «как в PostgreSQL».';
+  add('Итог', fin, {vis: vis.slice(), ent: Object.assign({}, ent), docs: Object.assign({}, docs)});
+  go(0);
+}
+
+function sigHtml(s, qb, all){
+  let h = `<span class="sig ${len === 32 ? 'w32' : ''}">`;
+  for (let i = 0; i < len; i++){
+    const on = s.has(i), q = qb.includes(i);
+    const c = q ? (on ? 'qon' : 'qoff') : on ? 'on' : '';
+    h += `<b class="${c}" title="бит ${i}">${q ? i : ''}</b>`;
+  }
+  return h + '</span>';
+}
+function go(i){
+  si = Math.max(0, Math.min(steps.length - 1, i));
+  const st = steps[si], hl = st.hl;
+  $('cap').innerHTML = `<b class="t">Шаг ${si + 1}. ${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((s, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${s.title}</li>`).join('');
+  const qb = op === 'pref' ? [] : qbits();
+  const qset = new Set(qb);
+  $('map').innerHTML = ALLLEX.map(l => `<span class="${qset.has(bits()[l]) ? 'q' : ''}">${l} → ${bits()[l]}</span>`).join(' ');
+  $('docs').innerHTML = '<table><tr><th>id</th><th>Текст</th><th>Лексемы</th><th>Сигнатура</th></tr>' + DOCS.map(([id, txt, lex]) =>
+    `<tr class="${hl.docs[id] || ''}"><td>D${id}</td><td class="txt">${txt}</td><td>${lex.map(l => `<span class="lx ${(op === 'pref' ? l.startsWith('мир') : query.has(l)) ? 'q' : ''}">${l}</span>`).join('')}</td><td>${sigHtml(docSig(id), qb)}</td></tr>`).join('') + '</table>';
+  const ncls = blk => hl.cur === blk ? 'cur' : hl.vis.includes(blk) ? 'vis' : '';
+  let html = `<div class="node ${ncls(0)}"><div class="hd">блок 0 · корень · ключ записи = OR сигнатур страницы</div>` +
+    LEAVES.map(([nm, ids]) => `<div class="ent ${hl.ent['r:' + nm] || ''}"><span class="nm">${nm} → ${BLK[nm]}</span>${sigHtml(nodeSig(ids), qb)}</div>`).join('') + '</div>';
+  html += '<div class="leaves">' + LEAVES.map(([nm, ids]) => {
+    const cut = hl.ent['r:' + nm] === 'cut';
+    return `<div class="node ${ncls(BLK[nm])} ${cut ? 'cut' : ''}"><div class="hd">блок ${BLK[nm]} · лист ${nm}${cut ? ' · не читается' : ''}</div>` +
+      ids.map(d => `<div class="ent ${hl.ent['l:' + d] || ''}"><span class="nm">D${d}</span>${sigHtml(docSig(d), qb)}</div>`).join('') + '</div>';
+  }).join('') + '</div>';
+  $('tree').innerHTML = html;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+run();
+</script>
+</body>
+</html>

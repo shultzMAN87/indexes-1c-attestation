@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GiST (R-дерево) в PostgreSQL — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:12px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+button.go{background:#ea580c;border-color:#ea580c;color:#fff}
+button.go:hover{background:#c2410c}
+input[type=number]{font:inherit;font-size:14px;width:56px;padding:5px 6px;border:1px solid #d1d5db;border-radius:8px}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li:hover{color:#111827}
+.slist li.cur{color:#9a3412;font-weight:700}
+.grid{display:grid;grid-template-columns:480px minmax(0,1fr);gap:20px;margin-top:12px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+svg{width:100%;max-width:480px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;user-select:none;cursor:crosshair}
+.hint{font-size:12px;color:#6b7280;margin-top:4px}
+.node{border:1px solid #d1d5db;border-radius:8px;background:#fff;padding:4px 6px;font-size:12px;margin-bottom:8px;transition:all .15s}
+.node .hd{font-size:11px;color:#6b7280;margin-bottom:3px}
+.node.vis{border-color:#fdba74;background:#fffbf5}
+.node.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.node.new{border:2px dashed #16a34a}
+.leaves{display:flex;gap:8px;flex-wrap:wrap}
+.leaves .node{flex:1;min-width:150px}
+.it{display:inline-block;font-family:Consolas,monospace;font-size:12px;padding:1px 6px;border-radius:5px;background:#f3f4f6;border:1px solid #e5e7eb;margin:1px 2px;white-space:nowrap}
+.it .t{color:#6b7280;font-size:11px}
+.it.pass{background:#fed7aa;border-color:#ea580c;color:#9a3412;font-weight:700}
+.it.cut{opacity:.4;text-decoration:line-through}
+.it.hit{background:#dcfce7;border-color:#86efac;color:#166534;font-weight:700}
+.it.cmp{background:#fef3c7;border-color:#fcd34d}
+.it.new{background:#dbeafe;border-color:#60a5fa;color:#1e40af;font-weight:700}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+.queue{border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;font-size:12px;background:#f9fafb;margin-bottom:8px}
+.queue .hd{font-size:11px;color:#6b7280;margin-bottom:3px}
+.q{display:inline-block;font-family:Consolas,monospace;font-size:12px;padding:1px 6px;border-radius:5px;margin:1px 2px;border:1px solid #d1d5db;background:#fff}
+.q.node{border-style:dashed;margin:1px 2px;padding:1px 6px}
+.q.top{background:#fed7aa;border-color:#ea580c;font-weight:700}
+.res{font-size:13px}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>GiST — R-дерево: ключ узла охватывает всё поддерево</h1>
+<p class="sub">Индекс <code>USING gist (pos)</code> по точкам на карте 100 × 100 км. Ключ записи во внутренней странице — <b>ограничивающий прямоугольник</b> всех точек поддерева; прямоугольники соседних страниц <b>могут перекрываться</b>. Учебная модель: в листе до 5 точек, во внутренней странице до 5 записей. Идите по шагам кнопкой «Дальше» или стрелками ← →. К разделу 3.1 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Операция:</span>
+  <button id="op-box" onclick="setOp('box')"><code>pos &lt;@ box</code> поиск в области</button>
+  <button id="op-knn" onclick="setOp('knn')"><code>ORDER BY pos &lt;-&gt; Q</code> ближайшие (KNN)</button>
+  <button id="op-ins" onclick="setOp('ins')"><code>INSERT</code>: penalty и picksplit</button>
+  <button id="op-del" onclick="setOp('del')"><code>DELETE</code> + <code>VACUUM</code> → деградация</button>
+</div>
+<div class="ctrl">
+  <span id="f-box"><span class="lbl">Протяните мышью прямоугольник на карте или:</span>
+    <button onclick="setBox([36,52,48,66])">зона перекрытия</button>
+    <button onclick="setBox([56,10,82,24])">одна ветвь</button>
+    <button onclick="setBox([86,38,98,48])">пустое место</button></span>
+  <span id="f-knn"><span class="lbl">Щёлкните по карте, чтобы поставить точку Q.</span> LIMIT <input type="number" id="n" value="3" min="1" max="10"></span>
+  <span id="f-ins"><span class="lbl">Щёлкните по карте, где появится новая точка (попробуйте несколько вставок в одну область).</span></span>
+  <span id="f-del"><span class="lbl">Удалить все точки с</span> x &gt; <input type="number" id="dx" value="50"></span>
+  <button class="go" onclick="run()">Выполнить</button>
+  <button onclick="reindex()">REINDEX</button>
+  <button onclick="resetAll()">Сбросить</button>
+</div>
+
+<div class="sql" id="sql"></div>
+
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<div class="grid">
+  <div>
+    <h2>Карта: точки и прямоугольники-ключи</h2>
+    <svg id="plane" viewBox="0 0 480 480"></svg>
+    <div class="hint" id="hint"></div>
+  </div>
+  <div>
+    <div id="qpanel"></div>
+    <h2>Страницы индекса</h2>
+    <div id="tree"></div>
+  </div>
+</div>
+
+<div class="leg">
+  <span><i style="border:2px solid #ea580c;background:#fff7ed"></i>текущая страница</span>
+  <span><i style="background:#fed7aa;border-color:#ea580c"></i>ветвь подходит — спускаемся</span>
+  <span><i style="background:#f3f4f6;opacity:.5"></i>ветвь отсечена</span>
+  <span><i style="background:#dcfce7;border-color:#86efac"></i>точка в результате</span>
+  <span><i style="background:#dbeafe;border-color:#60a5fa"></i>новое / изменилось</span>
+  <span><i style="border:2px dashed #dc2626"></i>запрос</span>
+</div>
+<p class="note">Что упрощено: на настоящей странице сотни записей; <code>picksplit</code> в PostgreSQL для точек сложнее (учитывает перекрытие и форму групп), здесь — разрез по оси с большим разбросом. Корень GiST всегда лежит в блоке 0: при его расщеплении содержимое переезжает в две новые страницы, а в блоке 0 остаётся новый корень. Для точек возможен Index Only Scan — точка хранится в листе целиком.</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const LEAF_CAP = 5, IN_CAP = 5;
+const COLORS = ['#2563eb','#16a34a','#9333ea','#0891b2','#db2777','#ca8a04','#4b5563','#7c3aed','#059669','#be123c'];
+const clone = o => JSON.parse(JSON.stringify(o));
+const $ = id => document.getElementById(id);
+const r1 = v => Math.round(v * 10) / 10;
+const fmt = v => String(r1(v)).replace('.', ',');
+let N, P, root, nextBlk, nextP, op = 'box', steps = [], si = 0;
+let qbox = [36,52,48,66], Q = [52,44], insPt = [44,62], acc;
+
+const INIT = {
+  1: [[10,15],[25,10],[18,35],[30,30]],
+  2: [[55,20],[70,12],[62,38],[80,30]],
+  3: [[15,60],[35,75],[28,88],[42,58]],
+  4: [[38,48],[60,70],[75,85],[85,62],[52,55]]
+};
+function resetAll(){
+  N = {}; P = {}; nextP = 1; nextBlk = 5;
+  N[0] = {id: 0, leaf: false, items: []};
+  Object.entries(INIT).forEach(([blk, pts]) => {
+    const id = +blk;
+    N[id] = {id, leaf: true, items: pts.map(([x, y]) => newPoint(x, y))};
+    N[0].items.push({c: id, box: bbox(N[id].items.map(pid => P[pid]))});
+  });
+  root = 0;
+  setOp(op);
+}
+function newPoint(x, y){
+  const id = nextP++;
+  P[id] = {id, x, y, tid: `(${Math.floor((id - 1) / 4)},${(id - 1) % 4 + 1})`};
+  return id;
+}
+function bbox(pts){
+  return [Math.min(...pts.map(p => p.x)), Math.min(...pts.map(p => p.y)), Math.max(...pts.map(p => p.x)), Math.max(...pts.map(p => p.y))];
+}
+const boxOfBoxes = bs => [Math.min(...bs.map(b => b[0])), Math.min(...bs.map(b => b[1])), Math.max(...bs.map(b => b[2])), Math.max(...bs.map(b => b[3]))];
+const area = b => (b[2] - b[0]) * (b[3] - b[1]);
+const inter = (a, b) => a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3];
+const inBox = (p, b) => p.x >= b[0] && p.x <= b[2] && p.y >= b[1] && p.y <= b[3];
+const boxStr = b => `(${b[0]},${b[1]})–(${b[2]},${b[3]})`;
+function distBox(q, b){ const dx = Math.max(b[0] - q[0], 0, q[0] - b[2]), dy = Math.max(b[1] - q[1], 0, q[1] - b[3]); return Math.hypot(dx, dy); }
+const distPt = (q, p) => Math.hypot(p.x - q[0], p.y - q[1]);
+const pname = id => 'p' + id;
+function colorOf(id){ const ids = Object.keys(N).map(Number).filter(k => k !== root).sort((a, b) => a - b); return COLORS[ids.indexOf(id) % COLORS.length]; }
+function height(){ let h = 1, id = root; while (!N[id].leaf){ id = N[id].items[0].c; h++; } return h; }
+
+function setOp(o){
+  op = o;
+  ['box','knn','ins','del'].forEach(x => $('op-' + x).classList.toggle('sel', x === o));
+  ['box','knn','ins','del'].forEach(x => $('f-' + x).style.display = x === o ? '' : 'none');
+  if (o === 'ins' || o === 'del'){
+    steps = [];
+    if (o === 'ins'){ $('sql').textContent = `INSERT INTO shops (pos) VALUES (point '(${insPt[0]},${insPt[1]})');`;
+      add('Готово к вставке', `Щёлкните по карте, чтобы выбрать место новой точки (сейчас — (${insPt[0]},${insPt[1]}), синий крестик), и нажмите <b>«Выполнить»</b>. Вставка меняет дерево. Попробуйте вставить 2–3 точки в одну область — лист переполнится и разделится.`, {cross: insPt}); }
+    else { $('sql').textContent = `DELETE FROM shops WHERE pos[0] > ${$('dx').value}; VACUUM shops;`;
+      add('Готово к удалению', 'Нажмите <b>«Выполнить»</b>: удалятся все точки правее заданного x, затем пройдёт VACUUM. Посмотрите, что станет с прямоугольниками в корне, а потом выполните «поиск в области» по опустевшему месту и <b>REINDEX</b>.', {}); }
+    go(0);
+  } else run();
+}
+
+// ---------- шаги ----------
+function newAcc(){ acc = {vis: new Set(), res: []}; }
+function add(title, text, hl){
+  hl = hl || {};
+  steps.push({title, text, s: {N: clone(N), P: clone(P), root, cur: hl.cur ?? null, vis: [...(acc ? acc.vis : [])],
+    items: hl.items || {}, pts: hl.pts || {}, qbox: hl.qbox || null, Q: hl.Q || null, cross: hl.cross || null,
+    queue: hl.queue || null, res: hl.res || [], ghost: hl.ghost || [], newN: hl.newN || [], grow: hl.grow || null}});
+}
+
+// ---------- поиск в области ----------
+function setBox(b){ qbox = b.slice(); setOp('box'); }
+function runBox(){
+  const b = qbox;
+  $('sql').textContent = `SELECT * FROM shops WHERE pos <@ box '(${b[0]},${b[1]}),(${b[2]},${b[3]})';`;
+  newAcc();
+  const items = {}, pts = {}, res = [];
+  let total = Object.keys(N).length;
+  function visit(id, depth){
+    const n = N[id];
+    acc.vis.add(id);
+    if (n.leaf){
+      const hit = [], miss = [];
+      n.items.forEach((pid, j) => { const p = P[pid]; if (inBox(p, b)){ items[id + ':' + j] = 'hit'; pts[pid] = 'hit'; hit.push(pid); res.push(pid); } else { items[id + ':' + j] = 'cmp'; pts[pid] = pts[pid] || 'chk'; miss.push(pid); } });
+      add(`Лист, блок ${id}`, `Читаем <b>лист, блок ${id}</b>. Функция <code>consistent</code> на листе проверяет уже сами точки: ` +
+        (hit.length ? `внутри запроса — <b>${hit.map(pname).join(', ')}</b> → в результат` : '<b>ни одна точка не попала в запрос</b> — страница прочитана зря') +
+        (miss.length ? `; ${miss.map(pname).join(', ')} — снаружи.` : '.') +
+        (!hit.length ? ' Так бывает: прямоугольник ключа задевает запрос, но точки внутри прямоугольника лежат в стороне.' : ''),
+        {cur: id, items: clone(items), pts: clone(pts), qbox: b, res: res.slice()});
+      return;
+    }
+    const pass = [], cut = [];
+    n.items.forEach((it, j) => { if (inter(it.box, b)){ items[id + ':' + j] = 'pass'; pass.push(it); } else { items[id + ':' + j] = 'cut'; cut.push(it); } });
+    let t = `Читаем <b>${id === root ? 'корень' : 'внутреннюю страницу'}, блок ${id}</b>. Для каждой записи <code>consistent</code> отвечает: пересекается ли её прямоугольник с прямоугольником запроса? `;
+    t += pass.length ? `Да — ${pass.map(it => 'блок ' + it.c).join(', ')}: спускаемся. ` : 'Ни одна не пересекается — ниже идти некуда. ';
+    if (cut.length) t += `Нет — ${cut.map(it => 'блок ' + it.c).join(', ')}: эти ветви <b>отсечены</b>, их страницы не читаются, сколько бы точек в них ни было. `;
+    if (pass.length > 1){
+      const ov = pass.some((a, i) => pass.some((c, k) => k > i && inter(a.box, c.box)));
+      t += ov ? 'Прямоугольники подходящих ветвей <b>перекрываются</b>, и запрос попал в зону перекрытия — точка может лежать в любой из них, поэтому придётся читать <b>обе</b>. B-дерево всегда спускается в одну ветвь, GiST — в несколько.' : 'Запрос задевает несколько ветвей — читаем каждую.';
+    }
+    add(depth === 0 ? `Корень, блок ${id}` : `Внутренняя, блок ${id}`, t, {cur: id, items: clone(items), pts: clone(pts), qbox: b, res: res.slice()});
+    pass.forEach(it => visit(it.c, depth + 1));
+  }
+  visit(root, 0);
+  add('Итог', `Результат: <b>${res.length ? res.map(pname).join(', ') : 'точек нет'}</b>. Прочитано страниц индекса: <b>${acc.vis.size}</b> из ${total}. B-tree по точкам так не может: у точек нет порядка «больше/меньше», а GiST отсекает ветви по геометрии. Чем меньше перекрываются прямоугольники, тем меньше лишних чтений.`,
+    {items: clone(items), pts: clone(pts), qbox: b, res: res.slice()});
+}
+
+// ---------- KNN ----------
+function runKnn(){
+  const n = Math.max(1, Math.min(10, +$('n').value));
+  $('sql').textContent = `SELECT * FROM shops ORDER BY pos <-> point '(${Q[0]},${Q[1]})' LIMIT ${n};`;
+  newAcc();
+  let queue = [];
+  const res = [], items = {}, pts = {};
+  const qview = () => queue.slice().sort(cmp).map(e => ({k: e.k, id: e.id, d: e.d}));
+  const cmp = (a, b) => a.d - b.d || (a.k === 'p' ? -1 : 1) - (b.k === 'p' ? -1 : 1) || a.seq - b.seq;
+  let seq = 0;
+  function expand(id){
+    const nd = N[id];
+    acc.vis.add(id);
+    const got = [];
+    if (nd.leaf) nd.items.forEach((pid, j) => { const d = distPt(Q, P[pid]); queue.push({k: 'p', id: pid, d, seq: seq++}); got.push(`${pname(pid)} ${fmt(d)}`); items[id + ':' + j] = 'cmp'; });
+    else nd.items.forEach((it, j) => { const d = distBox(Q, it.box); queue.push({k: 'n', id: it.c, d, seq: seq++}); got.push(`блок ${it.c} ${fmt(d)}`); items[id + ':' + j] = 'cmp'; });
+    return got;
+  }
+  const g0 = expand(root);
+  add('Корень → очередь', `KNN обходит дерево не в глубину, а <b>по очереди с приоритетом</b> (по расстоянию до Q). Читаем корень (блок ${root}) и кладём в очередь его записи: ${g0.join(', ')}. Для записи-узла функция <code>distance</code> даёт расстояние от Q до <b>прямоугольника</b> — ни одна точка внутри не может быть ближе. Если Q внутри прямоугольника, расстояние 0.`,
+    {cur: root, items: clone(items), Q, queue: qview(), res: []});
+  while (queue.length && res.length < n){
+    queue.sort(cmp);
+    const e = queue.shift();
+    if (e.k === 'p'){
+      res.push(e.id); pts[e.id] = 'hit';
+      add(`Выдать №${res.length}: ${pname(e.id)}`, `Ближайший элемент очереди — <b>точка ${pname(e.id)}</b> (${fmt(e.d)}). Всё, что осталось в очереди, не ближе её: другие точки — по их точному расстоянию, узлы — потому что расстояние до прямоугольника — оценка <b>снизу</b>. Значит, ${pname(e.id)} — сосед <b>№${res.length}</b>, его можно отдать наверх сразу, не дочитывая дерево.`,
+        {Q, items: clone(items), pts: clone(pts), queue: qview(), res: res.slice(), top: null});
+    } else {
+      const waiting = queue.filter(x => x.k === 'p');
+      const g = expand(e.id);
+      let t = `Ближайший элемент очереди — <b>узел, блок ${e.id}</b> (${fmt(e.d)}). Это страница, а не точка: читаем её, и её записи уходят в очередь: ${g.join(', ')}.`;
+      if (waiting.length) t += ` Обратите внимание: в очереди уже была точка ${pname(waiting.sort(cmp)[0].id)} (${fmt(waiting[0].d)}), но узел ближе — <b>внутри него может оказаться точка ближе</b>, поэтому сначала читается он.`;
+      add(`Прочитать блок ${e.id}`, t, {cur: e.id, Q, items: clone(items), pts: clone(pts), queue: qview(), res: res.slice()});
+    }
+  }
+  add('Итог', `Найдено ${res.length}: <b>${res.map((id, i) => `№${i + 1} ${pname(id)} (${fmt(distPt(Q, P[id]))})`).join(', ')}</b>. Прочитано страниц индекса: <b>${acc.vis.size}</b> из ${Object.keys(N).length}. <code>LIMIT ${n}</code> остановил обход — остальные страницы не читались. В плане: <code>Index Scan</code> с <code>Order By: (pos &lt;-&gt; '(${Q[0]},${Q[1]})'::point)</code> и без узла <code>Sort</code>.`,
+    {Q, items: clone(items), pts: clone(pts), queue: qview(), res: res.slice()});
+}
+
+// ---------- вставка ----------
+function runIns(){
+  newAcc();
+  const [x, y] = insPt;
+  $('sql').textContent = `INSERT INTO shops (pos) VALUES (point '(${x},${y})');`;
+  const pid = newPoint(x, y), p = P[pid];
+  const path = [];
+  let id = root;
+  while (!N[id].leaf){
+    const n = N[id];
+    acc.vis.add(id); path.push(id);
+    const pens = n.items.map(it => { const nb = boxOfBoxes([it.box, [x, y, x, y]]); return {it, pen: area(nb) - area(it.box), a: area(it.box), nb}; });
+    let best = 0;
+    pens.forEach((v, i) => { if (v.pen < pens[best].pen || (v.pen === pens[best].pen && v.a < pens[best].a)) best = i; });
+    const items = {};
+    n.items.forEach((_, j) => items[id + ':' + j] = j === best ? 'pass' : 'cmp');
+    add(`Penalty в блоке ${id}`, `Новая точка <b>${pname(pid)} (${x},${y})</b>. Читаем ${id === root ? 'корень' : 'внутреннюю страницу'} (блок ${id}) и для каждой записи вызываем <code>penalty</code> — насколько вырастет площадь прямоугольника, если включить в него точку: ` +
+      pens.map(v => `блок ${v.it.c}: <b>+${v.pen}</b>`).join(', ') + `. Минимальный штраф — <b>блок ${pens[best].it.c}</b>${pens[best].pen === 0 ? ' (точка уже внутри прямоугольника)' : ''}. Выбор «где меньше расширять» держит прямоугольники маленькими и уменьшает перекрытие.`,
+      {cur: id, items, cross: insPt, grow: pens[best].pen ? {from: pens[best].it.box, to: pens[best].nb} : null});
+    id = pens[best].it.c;
+  }
+  const leaf = N[id];
+  acc.vis.add(id);
+  leaf.items.push(pid);
+  const items = {}; items[id + ':' + (leaf.items.length - 1)] = 'new';
+  let grew = false;
+  path.slice().reverse().forEach((pidN, k) => {
+    const child = k === 0 ? id : path[path.length - k];
+    const e = N[pidN].items.find(it => it.c === child);
+    const nb = boxOfBoxes([e.box, [x, y, x, y]]);
+    if (nb.join() !== e.box.join()){ grew = true; e.box = nb; items[pidN + ':' + N[pidN].items.indexOf(e)] = 'new'; }
+  });
+  if (leaf.items.length <= LEAF_CAP){
+    add(`Лист, блок ${id}`, `В листе (блок ${id}) есть место (${leaf.items.length} из ${LEAF_CAP}) — точка записана. ` +
+      (grew ? 'Ключи родителей <b>расширяются</b> (функция <code>union</code>): прямоугольник теперь охватывает и новую точку. Сужаться при удалениях он не будет — только расширяться.' : 'Точка внутри прямоугольника родителя — ключи выше не меняются.'),
+      {cur: id, items, pts: {[pid]: 'new'}});
+    add('Итог', 'Вставка закончена: изменился один лист и, возможно, ключи на пути к нему.', {pts: {[pid]: 'new'}});
+    return;
+  }
+  add('Лист переполнен', `Точка должна попасть в лист, блок ${id}, но там уже ${LEAF_CAP} точек из ${LEAF_CAP}. Нужен <code>picksplit</code> — разделить точки на две группы так, чтобы новые прямоугольники перекрывались как можно меньше.`, {cur: id, pts: {[pid]: 'new'}, items: {[id + ':' + LEAF_CAP]: 'new'}});
+  splitNode(id, path);
+  add('Итог', `Вставка закончена. Как и B-дерево, GiST растёт вверх и остаётся <b>сбалансированным</b>: все листья на одной глубине (сейчас высота — ${height()} уровня). Но порядок ключей не задан: разбиение решает функция класса операторов, а не сравнение «больше/меньше».`, {pts: {[pid]: 'new'}});
+}
+function splitNode(id, path){
+  const n = N[id];
+  let left, right, axis;
+  if (n.leaf){
+    const pts = n.items.map(pid => P[pid]);
+    const sx = Math.max(...pts.map(p => p.x)) - Math.min(...pts.map(p => p.x)), sy = Math.max(...pts.map(p => p.y)) - Math.min(...pts.map(p => p.y));
+    axis = sx >= sy ? 'x' : 'y';
+    const s = n.items.slice().sort((a, b) => P[a][axis] - P[b][axis]);
+    const h = Math.ceil(s.length / 2);
+    left = s.slice(0, h); right = s.slice(h);
+  } else {
+    const cx = it => (it.box[0] + it.box[2]) / 2, cy = it => (it.box[1] + it.box[3]) / 2;
+    const xs = n.items.map(cx), ys = n.items.map(cy);
+    axis = (Math.max(...xs) - Math.min(...xs)) >= (Math.max(...ys) - Math.min(...ys)) ? 'x' : 'y';
+    const f = axis === 'x' ? cx : cy;
+    const s = n.items.slice().sort((a, b) => f(a) - f(b));
+    const h = Math.ceil(s.length / 2);
+    left = s.slice(0, h); right = s.slice(h);
+  }
+  const boxOf = list => n.leaf ? bbox(list.map(pid => P[pid])) : boxOfBoxes(list.map(it => it.box));
+  if (id === root){
+    const a = nextBlk++, b = nextBlk++;
+    N[a] = {id: a, leaf: n.leaf, items: left}; N[b] = {id: b, leaf: n.leaf, items: right};
+    N[root] = {id: root, leaf: false, items: [{c: a, box: boxOf(left)}, {c: b, box: boxOf(right)}]};
+    add('Новый корень', `Делится сам корень. В GiST корень всегда лежит в <b>блоке 0</b>, поэтому его записи переезжают в две новые страницы — <b>блоки ${a} и ${b}</b> (разрез по оси ${axis}), а в блоке 0 остаётся новый корень из двух записей. Высота дерева выросла на 1.`,
+      {cur: root, items: {[root + ':0']: 'new', [root + ':1']: 'new'}, newN: [a, b]});
+    return;
+  }
+  const nb = nextBlk++;
+  n.items = left;
+  N[nb] = {id: nb, leaf: n.leaf, items: right};
+  const parent = N[path[path.length - 1]];
+  const e = parent.items.find(it => it.c === id);
+  e.box = boxOf(left);
+  parent.items.splice(parent.items.indexOf(e) + 1, 0, {c: nb, box: boxOf(right)});
+  const items = {};
+  parent.items.forEach((it, j) => { if (it.c === id || it.c === nb) items[parent.id + ':' + j] = 'new'; });
+  add(`picksplit блока ${id}`, `Учебный <code>picksplit</code>: у точек больше разброс по оси <b>${axis}</b> — сортируем по ${axis} и режем пополам. В блоке ${id} остаются ${n.leaf ? left.map(pname).join(', ') : left.length + ' записи'}, в <b>новый блок ${nb}</b> уходят ${n.leaf ? right.map(pname).join(', ') : right.length + ' записи'}. В родителе (блок ${parent.id}) ключ блока ${id} пересчитывается — теперь это ${boxStr(e.box)} (при split ключ может и сузиться), и добавляется запись «блок ${nb}: ${boxStr(boxOf(right))}».`,
+    {cur: parent.id, items, newN: [nb]});
+  if (parent.items.length > IN_CAP){
+    add(`Блок ${parent.id} переполнен`, `В блоке ${parent.id} теперь ${parent.items.length} записей при вместимости ${IN_CAP} — делится и он: расщепление идёт вверх.`, {cur: parent.id});
+    splitNode(parent.id, path.slice(0, -1));
+  }
+}
+
+// ---------- удаление ----------
+function runDel(){
+  newAcc();
+  const dx = +$('dx').value;
+  $('sql').textContent = `DELETE FROM shops WHERE pos[0] > ${dx}; VACUUM shops;`;
+  const gone = Object.values(P).filter(p => p.x > dx).map(p => p.id);
+  const pts = {}; gone.forEach(id => pts[id] = 'del');
+  add('DELETE', `Удаляются точки с x &gt; ${dx}: <b>${gone.map(pname).join(', ') || 'таких нет'}</b>. Пока это только отметка в куче (версии строк стали мёртвыми); в индексе их записи ещё есть.`, {pts});
+  const ghost = [];
+  Object.values(N).forEach(n => { if (n.leaf) n.items = n.items.filter(pid => !gone.includes(pid)); });
+  gone.forEach(id => delete P[id]);
+  Object.values(N).forEach(n => { if (!n.leaf) n.items.forEach(it => ghost.push(it.box)); });
+  add('VACUUM', 'VACUUM убирает записи мёртвых строк из листьев. Но посмотрите на прямоугольники в корне: <b>они не сузились</b>. Ключи внутренних узлов при вставке только расширяются, а VACUUM их не пересчитывает. Прямоугольник по-прежнему охватывает область, где точек уже нет.', {});
+  const b = [Math.min(98, dx + 15), 55, Math.min(100, dx + 30), 75];
+  add('Что это значит для поиска', `Выберите «поиск в области» и протяните прямоугольник в опустевшей правой части. Корень скажет «да, ветвь пересекается», и индекс <b>прочитает лист, в котором ничего не найдёт</b>. Перекрытие и лишние чтения растут вместе с числом удалений и обновлений. Лечение — <code>REINDEX</code> (кнопка выше; в рабочей базе — <code>REINDEX CONCURRENTLY</code>): дерево строится заново, и прямоугольники снова плотно облегают точки.`, {qbox: b});
+  qbox = b;
+}
+function reindex(){
+  const pids = Object.keys(P).map(Number);
+  N = {}; nextBlk = 1;
+  N[0] = {id: 0, leaf: false, items: []};
+  const sorted = pids.sort((a, b) => P[a].x - P[b].x);
+  const leaves = Math.max(1, Math.ceil(sorted.length / 4));
+  const per = Math.ceil(sorted.length / leaves);
+  const groups = [];
+  for (let i = 0; i < sorted.length; i += per) groups.push(sorted.slice(i, i + per).sort((a, b) => P[a].y - P[b].y));
+  if (groups.length > IN_CAP){
+    // двухуровневое построение
+    const mids = [];
+    for (let i = 0; i < groups.length; i += IN_CAP) mids.push(groups.slice(i, i + IN_CAP));
+    mids.forEach(gs => { const mid = nextBlk++; N[mid] = {id: mid, leaf: false, items: []};
+      gs.forEach(g => { const id = nextBlk++; N[id] = {id, leaf: true, items: g}; N[mid].items.push({c: id, box: bbox(g.map(pid => P[pid]))}); });
+      N[0].items.push({c: mid, box: boxOfBoxes(N[mid].items.map(it => it.box))}); });
+  } else groups.forEach(g => { const id = nextBlk++; N[id] = {id, leaf: true, items: g}; N[0].items.push({c: id, box: bbox(g.map(pid => P[pid]))}); });
+  root = 0;
+  newAcc();
+  steps = [];
+  $('sql').textContent = 'REINDEX INDEX shops_pos_idx;';
+  add('REINDEX', `Индекс построен заново по оставшимся ${pids.length} точкам: прямоугольники снова минимальны и почти не перекрываются. Теперь поиск в опустевшей области отсекается уже в корне — 1 страница вместо чтения пустых листьев. (При построении PostgreSQL для точек использует сортировку — функция <code>sortsupport</code>, PG 14+.)`, {});
+  go(0);
+}
+
+function run(){
+  steps = [];
+  if (op === 'box') runBox(); else if (op === 'knn') runKnn(); else if (op === 'ins') runIns(); else runDel();
+  go(op === 'ins' && steps.length > 1 ? 0 : 0);
+}
+
+// ---------- отрисовка ----------
+const SX = v => 20 + v * 4.4, SY = v => 460 - v * 4.4;
+function go(i){
+  si = Math.max(0, Math.min(steps.length - 1, i));
+  const st = steps[si];
+  $('cap').innerHTML = `<b class="t">Шаг ${si + 1}. ${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((s, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${s.title}</li>`).join('');
+  draw(st.s);
+}
+function draw(s){
+  const Nn = s.N, Pp = s.P;
+  const ids = Object.keys(Nn).map(Number).filter(k => k !== s.root).sort((a, b) => a - b);
+  const col = id => COLORS[ids.indexOf(id) % COLORS.length];
+  // состояние записи родителя для узла
+  const entryState = {}, parentOf = {}, entryBox = {};
+  Object.values(Nn).forEach(n => { if (!n.leaf) n.items.forEach((it, j) => { entryState[it.c] = s.items[n.id + ':' + j] || ''; parentOf[it.c] = n.id; entryBox[it.c] = it.box; }); });
+  let g = '';
+  for (let v = 0; v <= 100; v += 10){
+    g += `<line x1="${SX(v)}" y1="${SY(0)}" x2="${SX(v)}" y2="${SY(100)}" stroke="#f3f4f6"/><line x1="${SX(0)}" y1="${SY(v)}" x2="${SX(100)}" y2="${SY(v)}" stroke="#f3f4f6"/>`;
+    g += `<text x="${SX(v)}" y="475" font-size="9" fill="#9ca3af" text-anchor="middle">${v}</text><text x="10" y="${SY(v) + 3}" font-size="9" fill="#9ca3af" text-anchor="middle">${v}</text>`;
+  }
+  // прямоугольники: сначала верхние уровни
+  const order = ids.slice().sort((a, b) => (Nn[a].leaf ? 1 : 0) - (Nn[b].leaf ? 1 : 0));
+  order.forEach(id => {
+    const b = entryBox[id]; if (!b) return;
+    const st = entryState[id], c = Nn[id].leaf ? col(id) : '#111827';
+    const cur = s.cur === id;
+    const fo = st === 'pass' || cur ? .16 : st === 'new' ? .14 : .05;
+    const sw = cur ? 3.5 : st === 'pass' || st === 'new' ? 2.5 : 1.5;
+    const op = st === 'cut' ? .35 : 1;
+    const dash = Nn[id].leaf ? (st === 'cut' ? '5 4' : '') : '8 4';
+    const pad = Nn[id].leaf ? 4 : 9;
+    g += `<rect x="${SX(b[0]) - pad}" y="${SY(b[3]) - pad}" width="${(b[2] - b[0]) * 4.4 + 2 * pad}" height="${(b[3] - b[1]) * 4.4 + 2 * pad}" rx="4" fill="${c}" fill-opacity="${fo}" stroke="${cur ? '#ea580c' : c}" stroke-width="${sw}" stroke-dasharray="${dash}" opacity="${op}"/>`;
+    g += `<text x="${SX(b[0]) - pad + 3}" y="${SY(b[3]) - pad - 3}" font-size="11" font-weight="700" fill="${cur ? '#ea580c' : c}" opacity="${op}">блок ${id}</text>`;
+  });
+  if (s.grow){ const b = s.grow.to; g += `<rect x="${SX(b[0]) - 4}" y="${SY(b[3]) - 4}" width="${(b[2] - b[0]) * 4.4 + 8}" height="${(b[3] - b[1]) * 4.4 + 8}" rx="4" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="3 3"/>`; }
+  if (s.qbox){ const b = s.qbox; g += `<rect x="${SX(b[0])}" y="${SY(b[3])}" width="${(b[2] - b[0]) * 4.4}" height="${(b[3] - b[1]) * 4.4}" fill="#dc2626" fill-opacity=".07" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="7 4"/>`; }
+  if (s.Q){
+    g += `<circle cx="${SX(s.Q[0])}" cy="${SY(s.Q[1])}" r="6" fill="#dc2626"/><text x="${SX(s.Q[0]) + 9}" y="${SY(s.Q[1]) + 4}" font-size="12" font-weight="700" fill="#dc2626">Q</text>`;
+    s.res.forEach(pid => { const p = Pp[pid]; if (p) g += `<line x1="${SX(s.Q[0])}" y1="${SY(s.Q[1])}" x2="${SX(p.x)}" y2="${SY(p.y)}" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4 3"/>`; });
+  }
+  Object.values(Pp).forEach(p => {
+    const st = s.pts[p.id] || '';
+    const fill = st === 'hit' ? '#16a34a' : st === 'new' ? '#2563eb' : st === 'del' ? '#dc2626' : '#374151';
+    const r = st === 'hit' || st === 'new' ? 6 : 4;
+    g += `<circle cx="${SX(p.x)}" cy="${SY(p.y)}" r="${r}" fill="${fill}" ${st === 'del' ? 'opacity=".5"' : ''}/>`;
+    const k = s.res.indexOf(p.id);
+    g += `<text x="${SX(p.x) + 7}" y="${SY(p.y) - 5}" font-size="10" fill="${fill}">${pname(p.id)}${k >= 0 && s.Q ? ' №' + (k + 1) : ''}</text>`;
+    if (st === 'del') g += `<line x1="${SX(p.x) - 6}" y1="${SY(p.y) - 6}" x2="${SX(p.x) + 6}" y2="${SY(p.y) + 6}" stroke="#dc2626" stroke-width="2"/>`;
+  });
+  if (s.cross) g += `<path d="M${SX(s.cross[0]) - 8} ${SY(s.cross[1])}h16M${SX(s.cross[0])} ${SY(s.cross[1]) - 8}v16" stroke="#2563eb" stroke-width="3"/>`;
+  $('plane').innerHTML = g;
+  $('hint').textContent = op === 'box' ? 'Протяните мышью прямоугольник — запрос выполнится заново.' : op === 'knn' ? 'Щёлкните по карте — точка Q переместится.' : op === 'ins' ? 'Щёлкните по карте — там будет новая точка (синий крестик).' : '';
+  // очередь KNN
+  $('qpanel').innerHTML = s.queue ? `<h2>Очередь по расстоянию до Q (слева — ближайшее)</h2><div class="queue">` +
+    (s.queue.length ? s.queue.map((e, i) => `<span class="q ${e.k === 'n' ? 'node' : ''} ${i === 0 ? 'top' : ''}">${e.k === 'n' ? 'блок ' + e.id : pname(e.id)} ${fmt(e.d)}</span>`).join('') : '<span style="color:#9ca3af">пусто</span>') +
+    `</div><div class="res">Выдано: ${s.res.length ? s.res.map((id, i) => `<b>№${i + 1} ${pname(id)}</b>`).join(', ') : '—'}</div>` : '';
+  // страницы
+  const node = id => {
+    const n = Nn[id];
+    const cls = s.cur === id ? 'cur' : s.vis.includes(id) ? 'vis' : s.newN.includes(id) ? 'new' : '';
+    const its = n.leaf
+      ? n.items.map((pid, j) => { const p = Pp[pid]; if (!p) return ''; const c = s.pts[pid] === 'hit' ? 'hit' : s.pts[pid] === 'new' ? 'new' : (s.items[id + ':' + j] || ''); return `<span class="it ${c}">${pname(pid)} (${p.x},${p.y}) <span class="t">${p.tid}</span></span>`; }).join('')
+      : n.items.map((it, j) => `<span class="it ${s.items[id + ':' + j] || ''}"><span class="sw" style="background:${Nn[it.c].leaf ? col(it.c) : '#111827'}"></span>${boxStr(it.box)} → блок ${it.c}</span>`).join('<br>');
+    return `<div class="node ${cls}"><div class="hd">блок ${id} · ${id === s.root ? 'корень' : n.leaf ? 'лист' : 'внутренняя'}${n.leaf ? ` · ${n.items.length}/${LEAF_CAP}` : ''}</div>${its || '<span style="color:#9ca3af;font-size:11px">пусто</span>'}</div>`;
+  };
+  let html = node(s.root);
+  let level = Nn[s.root].items.map(it => it.c);
+  while (level.length){
+    html += `<div class="leaves">${level.map(node).join('')}</div>`;
+    level = level.flatMap(id => Nn[id].leaf ? [] : Nn[id].items.map(it => it.c));
+  }
+  $('tree').innerHTML = html;
+}
+
+// ---------- мышь ----------
+let drag = null;
+function svgPt(e){
+  const r = $('plane').getBoundingClientRect(), k = 480 / r.width;
+  const x = ((e.clientX - r.left) * k - 20) / 4.4, y = (460 - (e.clientY - r.top) * k) / 4.4;
+  return [Math.max(0, Math.min(100, Math.round(x))), Math.max(0, Math.min(100, Math.round(y)))];
+}
+$('plane').addEventListener('mousedown', e => {
+  const p = svgPt(e);
+  if (op === 'box') drag = p;
+  else if (op === 'knn'){ Q = p; run(); }
+  else if (op === 'ins'){ insPt = p; setOp('ins'); }
+});
+$('plane').addEventListener('mousemove', e => {
+  if (!drag) return;
+  const p = svgPt(e);
+  const s = steps[si].s;
+  s.qbox = [Math.min(drag[0], p[0]), Math.min(drag[1], p[1]), Math.max(drag[0], p[0]), Math.max(drag[1], p[1])];
+  draw(s);
+});
+window.addEventListener('mouseup', e => {
+  if (!drag) return;
+  const p = svgPt(e);
+  if (Math.abs(p[0] - drag[0]) + Math.abs(p[1] - drag[1]) > 2) qbox = [Math.min(drag[0], p[0]), Math.min(drag[1], p[1]), Math.max(drag[0], p[0]), Math.max(drag[1], p[1])];
+  drag = null; run();
+});
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+$('n').addEventListener('change', run);
+resetAll();
+</script>
+</body>
+</html>

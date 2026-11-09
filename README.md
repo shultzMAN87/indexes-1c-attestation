@@ -114,12 +114,31 @@
 
 ---
 
+## Интерактивные схемы
+
+Пошаговые HTML-схемы: выбираете операцию, нажимаете «Дальше» (или стрелки ← →), и на каждом шаге видно, что читается и почему. «Открыть» запускает схему в браузере сразу; можно и скачать файл (*Download raw file* на странице файла) и открыть локально — интернет не нужен.
+
+| Схема | Что показывает | Раздел | |
+|---|---|---|---|
+| B-tree | Спуск по дереву, диапазон по цепочке листьев, `ORDER BY … DESC LIMIT`, Index Only Scan и карта видимости, вставка с page split и ростом дерева | [3.1](docs/03-postgresql.md#b-tree--то-же-b-дерево-что-в-ms-sql-с-отличиями) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/btree.html) · [файл](interactive/btree.html) |
+| Hash | Метастраница и маски, корзины и страницы переполнения, коллизия и перепроверка, деление корзины | [3.1](docs/03-postgresql.md#hash--корзины-по-хеш-коду) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/hash.html) · [файл](interactive/hash.html) |
+| GiST | R-дерево: поиск в области, KNN, `penalty`/`picksplit`, деградация после удалений | [3.1](docs/03-postgresql.md#gist--дерево-охватывающих-ключей) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/gist.html) · [файл](interactive/gist.html) |
+| GiST, RD-дерево | Сигнатуры `tsvector`, коллизии битов, префикс, длина сигнатуры | [3.1](docs/03-postgresql.md#rd-дерево-gist-для-полнотекстового-поиска) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/gist-rd-tree.html) · [файл](interactive/gist-rd-tree.html) |
+| SP-GiST | Префиксное дерево и дерево квадрантов: поиск, `choose`, `picksplit` | [3.1](docs/03-postgresql.md#sp-gist--разбиение-пространства-на-непересекающиеся-части) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/spgist.html) · [файл](interactive/spgist.html) |
+| GIN | Ключи → списки `ctid`, `@>` / `&&` / `<@`, pending list | [3.1](docs/03-postgresql.md#gin--инвертированный-индекс) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/gin.html) · [файл](interactive/gin.html) |
+| BRIN | Сводки по диапазонам, lossy-карта, корреляция, `minmax_multi`, диапазон без сводки | [3.1](docs/03-postgresql.md#brin--сводки-по-диапазонам-блоков) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/brin.html) · [файл](interactive/brin.html) |
+| Skip scan | Поиск по второй колонке составного индекса | [1.5](docs/01-teoriya.md#skip-scan-в-postgresql-18) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/skip-scan.html) · [файл](interactive/skip-scan.html) |
+| Page split (MS SQL) | Страница, массив слотов, расщепление и фрагментация | [2.2](docs/02-mssql.md#22--что-такое-fill-factor-и-зачем-может-потребоваться-его-менять-что-такое-page-split) | [открыть](https://raw.githack.com/shultzMAN87/indexes-1c-attestation/main/interactive/page-split.html) · [файл](interactive/page-split.html) |
+
+---
+
 ## Структура репозитория
 
 ```
 ├── README.md
 ├── docs/            главы методички, шпаргалка, источники
 ├── images/          схемы (SVG)
+├── interactive/     интерактивные пошаговые схемы (HTML)
 └── sql/
     ├── mssql/       учебные скрипты для MS SQL Server
     └── postgresql/  учебные скрипты для PostgreSQL

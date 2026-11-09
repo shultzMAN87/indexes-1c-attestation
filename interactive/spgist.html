@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SP-GiST в PostgreSQL — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:14px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+button.tab.sel{background:#111827;border-color:#111827;color:#fff}
+button.tab.sel code{background:transparent;color:#fff}
+button.go{background:#ea580c;border-color:#ea580c;color:#fff}
+button.go:hover{background:#c2410c}
+input[type=text]{font:inherit;font-size:14px;padding:5px 6px;border:1px solid #d1d5db;border-radius:8px;font-family:Consolas,monospace;width:220px}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li.cur{color:#9a3412;font-weight:700}
+/* префиксное дерево */
+.rt ul{list-style:none;margin:0;padding-left:26px;border-left:1px dashed #d1d5db}
+.rt>ul{padding-left:0;border-left:none}
+.rt li{margin:4px 0;position:relative}
+.rt li.child::before{content:'';position:absolute;left:-26px;top:14px;width:22px;border-top:1px dashed #d1d5db}
+.lab{display:inline-block;font-family:Consolas,monospace;font-size:12px;padding:1px 6px;border-radius:5px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;margin-right:4px}
+.lab.pick{background:#fed7aa;border-color:#ea580c;color:#9a3412;font-weight:700}
+.lab.cut{opacity:.4;text-decoration:line-through}
+.lab.new{background:#dbeafe;border-color:#60a5fa;color:#1e40af;font-weight:700}
+.inner{display:inline-block;font-family:Consolas,monospace;font-size:13px;padding:2px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff}
+.inner.vis{border-color:#fdba74;background:#fffbf5}
+.inner.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.inner.new{border:2px dashed #16a34a}
+.leaf{display:inline-block;font-family:Consolas,monospace;font-size:13px;padding:2px 8px;border-radius:6px;background:#f3f4f6;border:1px solid #e5e7eb}
+.leaf.hit{background:#dcfce7;border-color:#86efac;color:#166534;font-weight:700}
+.leaf.cmp{background:#fef3c7;border-color:#fcd34d}
+.leaf.new{background:#dbeafe;border-color:#60a5fa;color:#1e40af;font-weight:700}
+.leaf.cur{box-shadow:0 0 0 3px #fed7aa}
+.full{font-size:11px;color:#9ca3af;margin-left:6px;font-family:Consolas,monospace}
+.cut-sub{opacity:.45}
+/* квадранты */
+.grid{display:grid;grid-template-columns:460px minmax(0,1fr);gap:20px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+svg{width:100%;max-width:460px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;user-select:none;cursor:crosshair}
+.qn{border:1px solid #d1d5db;border-radius:8px;background:#fff;padding:4px 6px;font-size:12px;margin:4px 0}
+.qn .hd{font-size:11px;color:#6b7280;margin-bottom:2px;font-family:Consolas,monospace}
+.qn.vis{border-color:#fdba74;background:#fffbf5}
+.qn.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.qn.new{border:2px dashed #16a34a}
+.qs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.qcell{border:1px solid #f3f4f6;border-radius:6px;padding:2px 4px;min-height:22px}
+.qcell .ql{font-size:10px;color:#9ca3af}
+.qcell.pick{background:#fff7ed;border-color:#fdba74}
+.qcell.cut{opacity:.4}
+.pt{display:inline-block;white-space:nowrap;font-family:Consolas,monospace;font-size:11px;padding:0 4px;border-radius:4px;background:#f3f4f6;margin:1px}
+.pt.hit{background:#dcfce7;color:#166534;font-weight:700}
+.pt.cmp{background:#fef3c7}
+.pt.new{background:#dbeafe;color:#1e40af;font-weight:700}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>SP-GiST — разбиение пространства на непересекающиеся части</h1>
+<p class="sub">Внутренняя запись хранит <b>префикс</b> (общее начало строк или центральную точку) и <b>узлы с метками</b> (следующий символ или номер квадранта). Части не перекрываются: к любому значению ведёт ровно один путь. Дерево не сбалансировано — в густых местах оно глубже. Идите по шагам кнопкой «Дальше» или стрелками ← →. К разделу 3.1 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Структура:</span>
+  <button class="tab" id="t-radix" onclick="setTab('radix')">Префиксное дерево — <code>text_ops</code></button>
+  <button class="tab" id="t-quad" onclick="setTab('quad')">Дерево квадрантов — <code>quad_point_ops</code></button>
+</div>
+
+<div id="ctl-radix">
+  <div class="ctrl">
+    <span class="lbl">Операция:</span>
+    <button id="ro-eq" onclick="setROp('eq')"><code>=</code> поиск</button>
+    <button id="ro-pref" onclick="setROp('pref')"><code>^@</code> / <code>LIKE 'abc%'</code></button>
+    <button id="ro-ins" onclick="setROp('ins')"><code>INSERT</code> (choose / picksplit)</button>
+  </div>
+  <div class="ctrl">
+    <span id="rl-q">значение: <input type="text" id="rq" value="postgresql.org" list="rsugg"></span>
+    <datalist id="rsugg"><option value="postgresql.org"><option value="postgres"><option value="postgrespro.ru"><option value="planet.postgresql.org"><option value="pgconf.ru"><option value="postgres.ai"><option value="postgis.net"></datalist>
+    <span class="lbl" id="rl-hint"></span>
+    <button class="go" onclick="run()">Выполнить</button>
+    <button onclick="resetAll()">Сбросить</button>
+  </div>
+</div>
+<div id="ctl-quad">
+  <div class="ctrl">
+    <span class="lbl">Операция:</span>
+    <button id="qo-box" onclick="setQOp('box')"><code>pos &lt;@ box</code> поиск в области</button>
+    <button id="qo-ins" onclick="setQOp('ins')"><code>INSERT</code> точки</button>
+  </div>
+  <div class="ctrl">
+    <span class="lbl" id="ql-hint"></span>
+    <span id="ql-box"><button onclick="setQBox([6,1,9,4])">справа внизу от центра</button> <button onclick="setQBox([4,4,6,6])">вокруг центра</button></span>
+    <button class="go" onclick="run()">Выполнить</button>
+    <button onclick="resetAll()">Сбросить</button>
+  </div>
+</div>
+
+<div class="sql" id="sql"></div>
+
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<div id="view-radix">
+  <h2>Индекс: внутренние записи [префикс] и метки узлов → листья с «хвостом» строки</h2>
+  <div class="rt" id="rtree"></div>
+</div>
+<div id="view-quad" class="grid">
+  <div>
+    <h2>Плоскость: центральные точки делят её на квадранты</h2>
+    <svg id="plane" viewBox="0 0 460 460"></svg>
+  </div>
+  <div>
+    <h2>Индекс: внутренние записи (центр) → 4 квадранта</h2>
+    <div id="qtree"></div>
+  </div>
+</div>
+
+<div class="leg">
+  <span><i style="border:2px solid #ea580c;background:#fff7ed"></i>текущая внутренняя запись</span>
+  <span><i style="background:#fed7aa;border-color:#ea580c"></i>выбранный узел (метка / квадрант)</span>
+  <span><i style="background:#f3f4f6;opacity:.45"></i>отсечено</span>
+  <span><i style="background:#dcfce7;border-color:#86efac"></i>в результате</span>
+  <span><i style="background:#dbeafe;border-color:#60a5fa"></i>новое</span>
+</div>
+<p class="note">Что упрощено: в настоящем индексе лист — это цепочка значений на одной странице, и <code>picksplit</code> вызывается, только когда цепочка не помещается на страницу; здесь лист префиксного дерева хранит одно значение, а квадрант — до двух точек, чтобы деление было видно сразу. Внутренние записи маленькие, поэтому на одной странице лежат записи разных уровней: логическая глубина большая, а прочитанных страниц немного. <code>NULL</code> хранятся в отдельном дереве.</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const clone = o => JSON.parse(JSON.stringify(o));
+let tab = 'radix', rop = 'eq', qop = 'box', steps = [], si = 0;
+
+/* ===================== префиксное дерево ===================== */
+let RT, rid, rtid;
+const RINIT = ['postgrespro.com','postgrespro.ru','postgresql.org','planet.postgresql.org'];
+const lbl = c => c === '' ? '∅' : `'${c}'`;
+function newLeaf(tail, full){ return {id: rid++, t: 'leaf', tail, full, tid: `(0,${rtid++})`}; }
+function cp(a, b){ let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return a.slice(0, i); }
+function rinsert(s, record){
+  const log = (title, text, hl) => { if (record) radd(title, text, hl); };
+  if (!RT){ RT = newLeaf(s, s); log('Первое значение', `Дерево пустое — значение <code>${s}</code> становится листом.`, {newIds: [RT.id]}); return; }
+  let node = RT, parent = null, plabelIdx = -1, consumed = '';
+  const path = [];
+  while (true){
+    const rest = s.slice(consumed.length);
+    if (node.t === 'leaf'){
+      if (node.tail === rest){ log('Такое значение уже есть', `Лист с <code>${s}</code> уже есть — в учебной модели дубликаты не добавляем.`, {cur: node.id, path}); return; }
+      const c = cp(node.tail, rest);
+      const old = node;
+      const inner = {id: rid++, t: 'in', prefix: c, nodes: []};
+      const a = {label: old.tail[c.length] ?? '', child: Object.assign(old, {tail: old.tail.slice(c.length + 1)})};
+      const nl = newLeaf(rest.slice(c.length + 1), s);
+      const b = {label: rest[c.length] ?? '', child: nl};
+      inner.nodes = [a, b].sort((x, y) => x.label < y.label ? -1 : 1);
+      if (parent) parent.nodes[plabelIdx].child = inner; else RT = inner;
+      log('picksplit', `Узел ведёт к листу со значением <code>${old.full}</code> — в учебной модели в листе одно значение, поэтому вызывается <code>picksplit</code>: два значения превращаются во <b>внутреннюю запись</b>. Общее начало оставшихся частей — <b>«${c}»</b> становится префиксом, а дальше значения расходятся по меткам ${lbl(a.label)} и ${lbl(b.label)}. Новое значение — лист с хвостом <code>${nl.tail || '∅'}</code>.`, {cur: inner.id, newIds: [inner.id, nl.id], labs: {[inner.id + ':' + b.label]: 'new'}, path});
+      return;
+    }
+    path.push(node.id);
+    const p = node.prefix;
+    if (!rest.startsWith(p)){
+      const c = cp(p, rest);
+      const lower = {id: rid++, t: 'in', prefix: p.slice(c.length + 1), nodes: node.nodes};
+      const oldLabel = p[c.length];
+      log(`choose: разделить префикс`, `Внутренняя запись с префиксом <b>«${p}»</b>, а у нового значения дальше идёт «${rest.slice(0, p.length)}…» — совпадает только «${c}». Ответ <code>choose</code> — <b>разделить префикс</b>: запись получает префикс «${c}», а старое содержимое уезжает ниже под метку ${lbl(oldLabel)} с префиксом «${lower.prefix}».`, {cur: node.id, path});
+      node.prefix = c; node.nodes = [{label: oldLabel, child: lower}];
+      log('После разделения', `Теперь у записи префикс «${c}» и один узел ${lbl(oldLabel)}. Продолжаем вставку с неё же.`, {cur: node.id, newIds: [lower.id], path});
+      continue;
+    }
+    const label = rest[p.length] ?? '';
+    const idx = node.nodes.findIndex(n => n.label === label);
+    const collected = consumed + p;
+    if (idx < 0){
+      const nl = newLeaf(rest.slice(p.length + 1), s);
+      node.nodes.push({label, child: nl});
+      node.nodes.sort((x, y) => x.label < y.label ? -1 : 1);
+      log(`choose: добавить узел ${lbl(label)}`, `Префикс «${p}» совпал (собрано <code>${collected}</code>). Следующий символ — ${label === '' ? '<b>конец строки</b> (особая метка ∅)' : `<b>${lbl(label)}</b>`}, а такого узла нет. Ответ <code>choose</code> — <b>добавить узел</b>: появляется метка ${lbl(label)} и лист с хвостом <code>${nl.tail || '∅'}</code>. Остальные записи не меняются.`, {cur: node.id, newIds: [nl.id], labs: {[node.id + ':' + label]: 'new'}, path});
+      return;
+    }
+    log(`choose: спуститься по ${lbl(label)}`, `Префикс «${p}» совпал (собрано <code>${collected}</code>). Следующий символ ${lbl(label)} — такой узел есть. Ответ <code>choose</code> — <b>спуститься</b> в него.`, {cur: node.id, labs: {[node.id + ':' + label]: 'pick'}, path});
+    parent = node; plabelIdx = idx; consumed = collected + label; node = node.nodes[idx].child;
+  }
+}
+function radd(title, text, hl){ steps.push({title, text, s: {RT: clone(RT), hl: Object.assign({cur: null, path: [], newIds: [], labs: {}, leaves: {}, cutIds: []}, hl)}}); }
+
+function rsearch(){
+  const q = $('rq').value;
+  const pref = rop === 'pref';
+  $('sql').textContent = pref ? `SELECT url FROM sites WHERE url ^@ '${q}';   -- или url LIKE '${q}%'` : `SELECT url FROM sites WHERE url = '${q}';`;
+  const labs = {}, leaves = {}, path = [], cutIds = [], res = [];
+  let reads = 0;
+  function subtreeIds(n){ return n.t === 'leaf' ? [n.id] : [n.id, ...n.nodes.flatMap(x => subtreeIds(x.child))]; }
+  function visit(n, consumed){
+    if (n.t === 'leaf'){
+      const full = consumed + n.tail;
+      const ok = pref ? full.startsWith(q) : full === q;
+      leaves[n.id] = ok ? 'hit' : 'cmp';
+      if (ok) res.push(full);
+      radd(`leaf_consistent: ${consumed + n.tail}`, `Лист: хвост <code>${n.tail || '∅'}</code>. <code>leaf_consistent</code> собирает значение из префиксов и меток по пути: <code>${consumed}</code> + <code>${n.tail}</code> = <b>${full}</b> → ${ok ? '<b>подходит</b>, в результат' : 'не подходит'}. Значение восстановлено из индекса — поэтому возможен <b>Index Only Scan</b>.`, {cur: n.id, path: path.slice(), labs: clone(labs), leaves: clone(leaves), cutIds: cutIds.slice()});
+      return;
+    }
+    path.push(n.id); reads++;
+    const p = n.prefix, full = consumed + p;
+    const m = Math.min(q.length, full.length);
+    let t = `Внутренняя запись, префикс <b>«${p}»</b> (вместе с путём — <code>${full}</code>). `;
+    if (q.slice(0, m) !== full.slice(0, m)){
+      n.nodes.forEach(x => { labs[n.id + ':' + x.label] = 'cut'; cutIds.push(...subtreeIds(x.child)); });
+      t += `Запрос <code>${q}</code> расходится с ним — <code>inner_consistent</code> не выбирает ни одного узла, дальше идти некуда.`;
+      radd(`inner_consistent`, t, {cur: n.id, path: path.slice(), labs: clone(labs), leaves: clone(leaves), cutIds: cutIds.slice()});
+      return;
+    }
+    let go = [];
+    if (q.length <= full.length){
+      if (pref){ go = n.nodes.slice(); t += `Запрос <code>${q}</code> <b>исчерпан</b>: всё поддерево начинается с него → спуск во <b>все</b> узлы: ${n.nodes.map(x => lbl(x.label)).join(', ')}.`; }
+      else if (q === full){ go = n.nodes.filter(x => x.label === ''); t += go.length ? 'Запрос закончился ровно здесь → нужен узел «конец строки» ∅.' : 'Запрос закончился здесь, но узла ∅ («строка кончается») нет — такого значения нет.'; }
+      else t += 'Запрос короче пути — точного совпадения быть не может.';
+    } else {
+      const c = q[full.length];
+      go = n.nodes.filter(x => x.label === c);
+      t += `Префикс совпал. Следующий символ запроса — ${lbl(c)} → ` + (go.length ? `спуск только в узел ${lbl(c)}` : `узла ${lbl(c)} нет, значений нет`) + '.';
+      const others = n.nodes.filter(x => x.label !== c);
+      if (others.length) t += ` Узлы ${others.map(x => lbl(x.label)).join(', ')} отброшены вместе со всем, что под ними.`;
+    }
+    n.nodes.forEach(x => { if (go.includes(x)) labs[n.id + ':' + x.label] = 'pick'; else { labs[n.id + ':' + x.label] = 'cut'; cutIds.push(...subtreeIds(x.child)); } });
+    radd(`inner_consistent: ${full || 'корень'}`, t, {cur: n.id, path: path.slice(), labs: clone(labs), leaves: clone(leaves), cutIds: cutIds.slice()});
+    go.forEach(x => visit(x.child, full + x.label));
+  }
+  if (!RT) { radd('Пусто', 'Индекс пуст.', {}); return; }
+  visit(RT, '');
+  let fin = `Результат: <b>${res.length ? res.join(', ') : 'нет'}</b>. Внутренних записей прочитано: ${reads}. `;
+  fin += pref ? 'Поиск по префиксу — один спуск до места, где запрос исчерпан, и обход поддерева. <code>^@</code> сравнивает байты начала строки, порядок сортировки (collation) ему не нужен: <code>LIKE \'abc%\'</code> работает в любой сортировке, в отличие от обычного B-tree.'
+              : 'К значению ведёт <b>один путь</b>, как в B-tree, но общее начало строк хранится один раз — на URL и путях индекс заметно компактнее.';
+  radd('Итог', fin, {labs: clone(labs), leaves: clone(leaves), cutIds: cutIds.slice()});
+}
+function rins(){
+  const q = $('rq').value.trim();
+  if (!q) return;
+  $('sql').textContent = `INSERT INTO sites (url) VALUES ('${q}');`;
+  radd('Вставка', `Вставляем <code>${q}</code>. На каждой внутренней записи функция <code>choose</code> даёт один из трёх ответов: <b>спуститься</b> в узел, <b>добавить узел</b> (новую метку) или <b>разделить префикс</b>.`, {});
+  rinsert(q, true);
+  radd('Итог', 'Вставка закончена. Изменились только записи на одном пути — области не перекрываются, решение «куда положить» однозначно, поэтому функций у класса меньше, чем у GiST (нет <code>penalty</code>, <code>union</code>, <code>same</code>).', {});
+}
+function drawRadix(s){
+  const hl = s.hl;
+  function li(n, label, collected, isChild, parentId){
+    const labHtml = isChild ? `<span class="lab ${hl.labs[parentId + ':' + label] || ''}">${lbl(label)}</span>→ ` : '';
+    const cut = hl.cutIds.includes(n.id) ? 'cut-sub' : '';
+    if (n.t === 'leaf'){
+      const cls = (hl.leaves[n.id] || '') + (hl.newIds.includes(n.id) ? ' new' : '') + (hl.cur === n.id ? ' cur' : '');
+      return `<li class="${isChild ? 'child' : ''} ${cut}">${labHtml}<span class="leaf ${cls}">лист «${n.tail || '∅'}»</span><span class="full">= ${collected + n.tail} ${n.tid}</span></li>`;
+    }
+    const cls = hl.cur === n.id ? 'cur' : hl.newIds.includes(n.id) ? 'new' : hl.path.includes(n.id) ? 'vis' : '';
+    const full = collected + n.prefix;
+    return `<li class="${isChild ? 'child' : ''} ${cut}">${labHtml}<span class="inner ${cls}">[ ${n.prefix ? 'префикс «' + n.prefix + '»' : 'без префикса'} ]</span><span class="full">собрано: ${full || '—'}</span><ul>` +
+      n.nodes.map(x => li(x.child, x.label, full + x.label, true, n.id)).join('') + '</ul></li>';
+  }
+  $('rtree').innerHTML = s.RT ? `<ul>${li(s.RT, null, '', false, null)}</ul>` : '<i>пусто</i>';
+}
+
+/* ===================== дерево квадрантов ===================== */
+let QT, qid, qbox = [6,1,9,4], qins = [8,4];
+const QINIT = [[8,8],[7,2],[3,2],[2,7],[8,3]];
+const QCAP = 2;
+const quadOf = (c, p) => p[0] > c[0] ? (p[1] >= c[1] ? 1 : 2) : (p[1] < c[1] ? 3 : 4);
+const QNAME = {1: 'правый верхний', 2: 'правый нижний', 3: 'левый нижний', 4: 'левый верхний'};
+function qresetTree(){
+  qid = 1;
+  QT = {id: qid++, t: 'in', c: [5,5], region: [0,0,10,10], q: {1: {t: 'leaf', pts: []}, 2: {t: 'leaf', pts: []}, 3: {t: 'leaf', pts: []}, 4: {t: 'leaf', pts: []}}};
+  QINIT.forEach(p => qinsert(p, false));
+}
+function subRegion(r, c, k){
+  return {1: [c[0], c[1], r[2], r[3]], 2: [c[0], r[1], r[2], c[1]], 3: [r[0], r[1], c[0], c[1]], 4: [r[0], c[1], c[0], r[3]]}[k];
+}
+const fp = p => `(${String(p[0]).replace('.', ',')}; ${String(p[1]).replace('.', ',')})`;
+function qinsert(p, record){
+  let n = QT;
+  const path = [];
+  while (true){
+    path.push(n.id);
+    const k = quadOf(n.c, p);
+    if (record) qadd(`choose в ${fp(n.c)}`, `Внутренняя запись с центром <b>${fp(n.c)}</b>. <code>choose</code> сравнивает координаты: x ${p[0] > n.c[0] ? '&gt;' : '≤'} ${n.c[0]}, y ${p[1] >= n.c[1] ? '≥' : '&lt;'} ${n.c[1]} → <b>квадрант ${k}</b> (${QNAME[k]}). Выбор однозначен — других вариантов нет.`, {cur: n.id, path: path.slice(), qs: {[n.id + ':' + k]: 'pick'}, cross: p});
+    const ch = n.q[k];
+    if (ch.t === 'in'){ n = ch; continue; }
+    ch.pts.push(p);
+    if (ch.pts.length <= QCAP){
+      if (record) qadd('В лист', `В квадранте ${k} лежит цепочка листовых записей, место есть (${ch.pts.length} из ${QCAP}) — точка ${fp(p)} добавлена.`, {cur: n.id, path: path.slice(), newPts: [p.join()]});
+      return;
+    }
+    const pts = ch.pts;
+    const c = [Math.round(pts.reduce((a, q) => a + q[0], 0) / pts.length * 10) / 10, Math.round(pts.reduce((a, q) => a + q[1], 0) / pts.length * 10) / 10];
+    const region = subRegion(n.region, n.c, k);
+    const inner = {id: qid++, t: 'in', c, region, q: {1: {t: 'leaf', pts: []}, 2: {t: 'leaf', pts: []}, 3: {t: 'leaf', pts: []}, 4: {t: 'leaf', pts: []}}};
+    pts.forEach(q => inner.q[quadOf(c, q)].pts.push(q));
+    n.q[k] = inner;
+    if (record) qadd('picksplit', `В квадранте ${k} уже ${QCAP} точки — переполнение. <code>picksplit</code> делает из цепочки новую внутреннюю запись: центр — <b>среднее</b> точек ${fp(c)}, и точки раскладываются по его четырём квадрантам. Так <b>густые места становятся глубже</b>: дерево несбалансированное, а пустые области остаются мелкими.`, {cur: inner.id, path: path.concat(inner.id), newIds: [inner.id], newPts: [p.join()]});
+    return;
+  }
+}
+function qadd(title, text, hl){ steps.push({title, text, s: {QT: clone(QT), hl: Object.assign({cur: null, path: [], qs: {}, pts: {}, newIds: [], newPts: [], box: null, cross: null}, hl)}}); }
+const inB = (p, b) => p[0] >= b[0] && p[0] <= b[2] && p[1] >= b[1] && p[1] <= b[3];
+function qsearch(){
+  const b = qbox;
+  $('sql').textContent = `SELECT pos FROM shops WHERE pos <@ box '(${b[0]},${b[1]}),(${b[2]},${b[3]})';`;
+  const qs = {}, pts = {}, path = [], res = [];
+  function visit(n){
+    path.push(n.id);
+    const kk = [];
+    if (b[2] > n.c[0] && b[3] >= n.c[1]) kk.push(1);
+    if (b[2] > n.c[0] && b[1] < n.c[1]) kk.push(2);
+    if (b[0] <= n.c[0] && b[1] < n.c[1]) kk.push(3);
+    if (b[0] <= n.c[0] && b[3] >= n.c[1]) kk.push(4);
+    [1,2,3,4].forEach(k => qs[n.id + ':' + k] = kk.includes(k) ? 'pick' : 'cut');
+    let t = `Внутренняя запись с центром <b>${fp(n.c)}</b>. <code>inner_consistent</code> сравнивает прямоугольник запроса с центром: `;
+    t += kk.length === 4 ? 'прямоугольник накрывает центр и задевает <b>все 4 квадранта</b> — спуск во все. Но каждая точка всё равно лежит ровно в одном из них, ни одна не встретится дважды.' :
+         `он задевает квадрант${kk.length > 1 ? 'ы' : ''} <b>${kk.join(', ')}</b> → спуск только туда; ${[1,2,3,4].filter(k => !kk.includes(k)).join(', ')} — не читаются.`;
+    qadd(`inner_consistent ${fp(n.c)}`, t, {cur: n.id, path: path.slice(), qs: clone(qs), pts: clone(pts), box: b});
+    kk.forEach(k => {
+      const ch = n.q[k];
+      if (ch.t === 'in') return visit(ch);
+      if (!ch.pts.length){ qadd(`Квадрант ${k} пуст`, `В квадранте ${k} точек нет.`, {cur: n.id, path: path.slice(), qs: clone(qs), pts: clone(pts), box: b}); return; }
+      const ok = [], no = [];
+      ch.pts.forEach(p => { if (inB(p, b)){ pts[p.join()] = 'hit'; ok.push(p); res.push(p); } else { pts[p.join()] = 'cmp'; no.push(p); } });
+      qadd(`leaf_consistent, квадрант ${k}`, `Квадрант ${k} центра ${fp(n.c)} — цепочка листовых записей. <code>leaf_consistent</code> проверяет точки: ${ok.length ? 'внутри запроса — <b>' + ok.map(fp).join(', ') + '</b>' : 'внутри запроса ни одной'}${no.length ? '; снаружи — ' + no.map(fp).join(', ') : ''}.`, {cur: n.id, path: path.slice(), qs: clone(qs), pts: clone(pts), box: b});
+    });
+  }
+  visit(QT);
+  qadd('Итог', `Результат: <b>${res.length ? res.map(fp).join(', ') : 'точек нет'}</b>. Точка хранится в листе целиком, поэтому <code>SELECT pos</code> выполняется как <b>Index Only Scan</b> (<code>Heap Fetches: 0</code> после VACUUM). В отличие от GiST, области не перекрываются: если запрос целиком в одном квадранте, спуск идёт по одной ветви.`, {qs: clone(qs), pts: clone(pts), box: b});
+}
+function qins_run(){
+  $('sql').textContent = `INSERT INTO shops (pos) VALUES (point '(${qins[0]},${qins[1]})');`;
+  qadd('Вставка', `Вставляем точку <b>${fp(qins)}</b> (синий крестик). Спуск от корня: на каждом уровне квадрант вычисляется сравнением с центром.`, {cross: qins});
+  qinsert(qins.slice(), true);
+  qadd('Итог', 'Вставка закончена. Изменился только один путь. Попробуйте добавить ещё точки в тот же угол — квадрант снова разделится и дерево там станет глубже.', {});
+}
+const S = v => 20 + v * 42, SY = v => 440 - v * 42;
+function drawQuad(s){
+  const hl = s.hl;
+  let g = '';
+  for (let v = 0; v <= 10; v++) g += `<line x1="${S(v)}" y1="${SY(0)}" x2="${S(v)}" y2="${SY(10)}" stroke="#f3f4f6"/><line x1="${S(0)}" y1="${SY(v)}" x2="${S(10)}" y2="${SY(v)}" stroke="#f3f4f6"/><text x="${S(v)}" y="455" font-size="10" fill="#9ca3af" text-anchor="middle">${v}</text><text x="9" y="${SY(v) + 3}" font-size="10" fill="#9ca3af" text-anchor="middle">${v}</text>`;
+  const allPts = [];
+  function walk(n, depth){
+    [1,2,3,4].forEach(k => {
+      const st = hl.qs[n.id + ':' + k];
+      const r = subRegion(n.region, n.c, k);
+      if (st === 'pick') g += `<rect x="${S(r[0])}" y="${SY(r[3])}" width="${(r[2] - r[0]) * 42}" height="${(r[3] - r[1]) * 42}" fill="#ea580c" fill-opacity=".07"/>`;
+      if (st === 'cut') g += `<rect x="${S(r[0])}" y="${SY(r[3])}" width="${(r[2] - r[0]) * 42}" height="${(r[3] - r[1]) * 42}" fill="#9ca3af" fill-opacity=".12"/>`;
+    });
+    const cur = hl.cur === n.id, nw = hl.newIds.includes(n.id);
+    const col = cur ? '#ea580c' : nw ? '#16a34a' : '#6b7280';
+    g += `<line x1="${S(n.region[0])}" y1="${SY(n.c[1])}" x2="${S(n.region[2])}" y2="${SY(n.c[1])}" stroke="${col}" stroke-width="${cur || nw ? 2.5 : 1.5}" stroke-dasharray="${depth ? '5 3' : ''}"/>`;
+    g += `<line x1="${S(n.c[0])}" y1="${SY(n.region[1])}" x2="${S(n.c[0])}" y2="${SY(n.region[3])}" stroke="${col}" stroke-width="${cur || nw ? 2.5 : 1.5}" stroke-dasharray="${depth ? '5 3' : ''}"/>`;
+    g += `<rect x="${S(n.c[0]) - 5}" y="${SY(n.c[1]) - 5}" width="10" height="10" fill="${col}" transform="rotate(45 ${S(n.c[0])} ${SY(n.c[1])})"/>`;
+    if (!depth || cur || nw) [1,2,3,4].forEach(k => { const r = subRegion(n.region, n.c, k); g += `<text x="${S((r[0] + r[2]) / 2)}" y="${SY((r[1] + r[3]) / 2)}" font-size="${depth ? 11 : 16}" fill="${col}" opacity=".35" text-anchor="middle">${k}</text>`; });
+    [1,2,3,4].forEach(k => { const ch = n.q[k]; if (ch.t === 'in') walk(ch, depth + 1); else allPts.push(...ch.pts); });
+  }
+  walk(s.QT, 0);
+  if (hl.box){ const b = hl.box; g += `<rect x="${S(b[0])}" y="${SY(b[3])}" width="${(b[2] - b[0]) * 42}" height="${(b[3] - b[1]) * 42}" fill="#dc2626" fill-opacity=".06" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="7 4"/>`; }
+  allPts.forEach(p => {
+    const st = hl.pts[p.join()] || (hl.newPts.includes(p.join()) ? 'new' : '');
+    const fill = st === 'hit' ? '#16a34a' : st === 'new' ? '#2563eb' : '#374151';
+    g += `<circle cx="${S(p[0])}" cy="${SY(p[1])}" r="${st ? 6 : 4.5}" fill="${fill}"/><text x="${S(p[0]) + 8}" y="${SY(p[1]) - 6}" font-size="11" fill="${fill}">${fp(p)}</text>`;
+  });
+  if (hl.cross) g += `<path d="M${S(hl.cross[0]) - 8} ${SY(hl.cross[1])}h16M${S(hl.cross[0])} ${SY(hl.cross[1]) - 8}v16" stroke="#2563eb" stroke-width="3"/>`;
+  $('plane').innerHTML = g;
+  function box(n){
+    const cls = hl.cur === n.id ? 'cur' : hl.newIds.includes(n.id) ? 'new' : hl.path.includes(n.id) ? 'vis' : '';
+    return `<div class="qn ${cls}"><div class="hd">центр ${fp(n.c)}${n.id === s.QT.id ? ' · квадранты расположены как на плоскости' : ''}</div><div class="qs">` + [4,1,3,2].map(k => {
+      const ch = n.q[k], st = hl.qs[n.id + ':' + k] || '';
+      const inner = ch.t === 'in' ? box(ch) : (ch.pts.length ? ch.pts.map(p => `<span class="pt ${hl.pts[p.join()] || (hl.newPts.includes(p.join()) ? 'new' : '')}">${fp(p)}</span>`).join('') : '<span style="color:#d1d5db;font-size:11px">пусто</span>');
+      return `<div class="qcell ${st}"><div class="ql">${k} · ${QNAME[k]}</div>${inner}</div>`;
+    }).join('') + '</div></div>';
+  }
+  $('qtree').innerHTML = box(s.QT);
+}
+function setQBox(b){ qbox = b; setQOp('box'); }
+
+/* ===================== общее ===================== */
+function setTab(t){
+  tab = t;
+  $('t-radix').classList.toggle('sel', t === 'radix'); $('t-quad').classList.toggle('sel', t === 'quad');
+  $('ctl-radix').style.display = t === 'radix' ? '' : 'none'; $('ctl-quad').style.display = t === 'quad' ? '' : 'none';
+  $('view-radix').style.display = t === 'radix' ? '' : 'none'; $('view-quad').style.display = t === 'quad' ? '' : 'none';
+  t === 'radix' ? setROp(rop) : setQOp(qop);
+}
+function setROp(o){
+  rop = o;
+  ['eq','pref','ins'].forEach(x => $('ro-' + x).classList.toggle('sel', x === o));
+  if (o === 'pref' && $('rq').value === 'postgresql.org') $('rq').value = 'postgres';
+  if (o === 'eq' && $('rq').value === 'postgres') $('rq').value = 'postgresql.org';
+  if (o === 'ins' && RINIT.includes($('rq').value)) $('rq').value = 'pgconf.ru';
+  $('rl-hint').textContent = o === 'ins' ? 'попробуйте: pgconf.ru, postgres, postgres.ai, postgis.net' : o === 'pref' ? 'попробуйте: postgres, postgrespro, p, planet' : '';
+  if (o === 'ins'){ steps = []; $('sql').textContent = `INSERT INTO sites (url) VALUES ('${$('rq').value}');`; radd('Готово к вставке', 'Введите значение и нажмите <b>«Выполнить»</b>. Вставка меняет дерево.', {}); go(0); }
+  else run();
+}
+function setQOp(o){
+  qop = o;
+  ['box','ins'].forEach(x => $('qo-' + x).classList.toggle('sel', x === o));
+  $('ql-box').style.display = o === 'box' ? '' : 'none';
+  $('ql-hint').textContent = o === 'box' ? 'Протяните мышью прямоугольник на плоскости или:' : 'Щёлкните по плоскости, чтобы выбрать место новой точки, затем «Выполнить».';
+  if (o === 'ins'){ steps = []; $('sql').textContent = `INSERT INTO shops (pos) VALUES (point '(${qins[0]},${qins[1]})');`; qadd('Готово к вставке', `Новая точка — ${fp(qins)} (синий крестик). Щёлкните по плоскости, чтобы выбрать другое место, и нажмите <b>«Выполнить»</b>. Попробуйте несколько точек в правом нижнем углу.`, {cross: qins}); go(0); }
+  else run();
+}
+function run(){
+  steps = [];
+  if (tab === 'radix') (rop === 'ins' ? rins : rsearch)();
+  else (qop === 'ins' ? qins_run : qsearch)();
+  go(0);
+}
+function go(i){
+  si = Math.max(0, Math.min(steps.length - 1, i));
+  const st = steps[si];
+  $('cap').innerHTML = `<b class="t">Шаг ${si + 1}. ${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((s, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${s.title}</li>`).join('');
+  if (st.s.RT !== undefined) drawRadix(st.s); else drawQuad(st.s);
+}
+function resetAll(){
+  RT = null; rid = 1; rtid = 1;
+  RINIT.forEach(s => rinsert(s, false));
+  qresetTree();
+  setTab(tab);
+}
+// мышь на плоскости
+let drag = null;
+function svgPt(e){
+  const r = $('plane').getBoundingClientRect(), k = 460 / r.width;
+  const x = ((e.clientX - r.left) * k - 20) / 42, y = (440 - (e.clientY - r.top) * k) / 42;
+  return [Math.max(0, Math.min(10, Math.round(x * 2) / 2)), Math.max(0, Math.min(10, Math.round(y * 2) / 2))];
+}
+$('plane').addEventListener('mousedown', e => { const p = svgPt(e); if (qop === 'box') drag = p; else { qins = p; setQOp('ins'); } });
+$('plane').addEventListener('mousemove', e => { if (!drag) return; const p = svgPt(e); const s = steps[si].s; s.hl.box = [Math.min(drag[0], p[0]), Math.min(drag[1], p[1]), Math.max(drag[0], p[0]), Math.max(drag[1], p[1])]; drawQuad(s); });
+window.addEventListener('mouseup', e => { if (!drag) return; const p = svgPt(e); if (Math.abs(p[0] - drag[0]) + Math.abs(p[1] - drag[1]) >= 1) qbox = [Math.min(drag[0], p[0]), Math.min(drag[1], p[1]), Math.max(drag[0], p[0]), Math.max(drag[1], p[1])]; drag = null; run(); });
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+$('rq').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+resetAll();
+</script>
+</body>
+</html>

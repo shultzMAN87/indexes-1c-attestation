@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B-tree в PostgreSQL — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1100px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:16px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+button.go{background:#ea580c;border-color:#ea580c;color:#fff}
+button.go:hover{background:#c2410c}
+input[type=number]{font:inherit;font-size:14px;width:64px;padding:5px 6px;border:1px solid #d1d5db;border-radius:8px}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+@media (max-width:760px){.slist{columns:1}}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li:hover{color:#111827}
+.slist li.cur{color:#9a3412;font-weight:700}
+.level{display:flex;gap:10px;justify-content:center;align-items:flex-start;flex-wrap:wrap;margin:6px 0}
+.lvname{font-size:12px;color:#9ca3af;text-align:center;margin-top:10px}
+.page{border:1px solid #d1d5db;border-radius:8px;background:#fff;padding:4px 6px;font-size:12px;min-width:70px;transition:all .15s}
+.page .hd{font-size:11px;color:#6b7280;margin-bottom:3px;white-space:nowrap}
+.page.vis{border-color:#fdba74;background:#fffbf5}
+.page.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.page.new{border:2px dashed #16a34a}
+.it{display:inline-block;font-family:Consolas,monospace;font-size:12px;padding:1px 6px;border-radius:5px;background:#f3f4f6;border:1px solid #e5e7eb;margin:1px 2px;white-space:nowrap}
+.it .t{color:#6b7280;font-size:11px}
+.it.cmp{background:#fef3c7;border-color:#fcd34d}
+.it.pick{background:#fed7aa;border-color:#ea580c;color:#9a3412;font-weight:700}
+.it.hit{background:#dcfce7;border-color:#86efac;color:#166534;font-weight:700}
+.it.new{background:#dbeafe;border-color:#60a5fa;color:#1e40af;font-weight:700}
+.it.no{opacity:.45}
+.link{color:#9ca3af;font-size:16px;align-self:center}
+.heap{display:flex;gap:10px;flex-wrap:wrap}
+.hp{border:1px solid #d1d5db;border-radius:8px;padding:4px 8px;font-size:12px;min-width:120px;background:#fff}
+.hp .hd{font-size:11px;color:#6b7280;margin-bottom:2px;display:flex;justify-content:space-between;gap:8px}
+.hp.read{border:2px solid #2563eb;box-shadow:0 0 0 3px #bfdbfe}
+.hp.skip{border:2px dashed #16a34a}
+.vm{font-size:11px;padding:0 5px;border-radius:5px}
+.vm.on{background:#dcfce7;color:#166534}
+.vm.off{background:#fee2e2;color:#991b1b}
+.hr{font-family:Consolas,monospace;padding:1px 4px;border-radius:4px}
+.hr.hit{background:#dcfce7;color:#166534;font-weight:700}
+.hr.new{background:#dbeafe;color:#1e40af;font-weight:700}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>B-tree — сбалансированное дерево (B+-дерево)</h1>
+<p class="sub">Индекс <code>goods_code_idx</code> по колонке <code>code</code>. Учебная модель: в листе помещается 4 ключа, во внутренней странице — 4 ссылки. Выберите операцию, задайте значения и идите по шагам кнопкой «Дальше» (или стрелками ← →). К разделам 1.2 и 3.1 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Операция:</span>
+  <button id="op-eq" onclick="setOp('eq')"><code>=</code> поиск значения</button>
+  <button id="op-range" onclick="setOp('range')"><code>BETWEEN</code> диапазон</button>
+  <button id="op-desc" onclick="setOp('desc')"><code>ORDER BY … DESC LIMIT</code></button>
+  <button id="op-ins" onclick="setOp('ins')"><code>INSERT</code> со split</button>
+</div>
+<div class="ctrl">
+  <span id="f-eq">code = <input type="number" id="x" value="47"></span>
+  <span id="f-range">code BETWEEN <input type="number" id="a" value="30"> AND <input type="number" id="b" value="70"></span>
+  <span id="f-desc">LIMIT <input type="number" id="n" value="3" min="1"></span>
+  <span id="f-ins">INSERT code = <input type="number" id="k" value="50"> <span class="lbl">(попробуйте 50, затем 58, 99, 23)</span></span>
+  <label id="f-ios"><input type="checkbox" id="ios" onchange="run()"> SELECT только <code>code</code> (Index Only Scan)</label>
+  <button class="go" onclick="run()">Выполнить</button>
+  <button onclick="vacuum()">VACUUM</button>
+  <button onclick="resetAll()">Сбросить</button>
+</div>
+
+<div class="sql" id="sql"></div>
+
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<h2>Индекс: метастраница → корень → внутренние страницы → листья (связаны в двусвязный список)</h2>
+<div id="tree"></div>
+
+<h2>Таблица (куча): страницы с версиями строк и карта видимости (VM)</h2>
+<div class="heap" id="heap"></div>
+
+<div class="leg">
+  <span><i style="background:#fffbf5;border-color:#ea580c;border-width:2px"></i>текущая страница индекса</span>
+  <span><i style="background:#fffbf5;border-color:#fdba74"></i>уже прочитана</span>
+  <span><i style="background:#fed7aa;border-color:#ea580c"></i>выбранная запись</span>
+  <span><i style="background:#fef3c7;border-color:#fcd34d"></i>сравнивается</span>
+  <span><i style="background:#dcfce7;border-color:#86efac"></i>подходит под условие</span>
+  <span><i style="background:#dbeafe;border-color:#60a5fa"></i>новое / изменилось</span>
+  <span><i style="border:2px solid #2563eb"></i>страница кучи читается</span>
+  <span><i style="border:2px dashed #16a34a"></i>куча не нужна (all-visible)</span>
+</div>
+<p class="note">Что упрощено: в настоящем индексе на странице сотни записей, а не 4; у не самых правых страниц есть ещё «high key» — верхняя граница ключей страницы; ключи внутренних страниц могут быть усечены (suffix truncation). Метастраница кешируется и в счётчике чтений обычно не видна.</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const CAP_LEAF = 4, CAP_IN = 4;
+const clone = o => JSON.parse(JSON.stringify(o));
+const $ = id => document.getElementById(id);
+let T, H, op = 'eq', steps = [], si = 0, nameNo = 0;
+
+function resetAll(){
+  const codes = [42,5,68,23,93,17,55,23,80,31,61,12,47,86,23,38,74,97];
+  H = {pages: []};
+  codes.forEach((c, i) => {
+    const p = Math.floor(i / 4);
+    if (!H.pages[p]) H.pages[p] = {id: p, rows: [], vis: true};
+    H.pages[p].rows.push({tid: `(${p},${H.pages[p].rows.length + 1})`, code: c});
+  });
+  H.pages[3].vis = false; H.pages[4].vis = false;
+  const tidsOf = k => H.pages.flatMap(p => p.rows).filter(r => r.code === k).map(r => r.tid);
+  const groups = [[5,12,17],[23,31,38],[42,47,55],[61,68,74],[80,86,93,97]];
+  T = {meta: {root: 8, level: 2}, pages: {}, next: 9};
+  groups.forEach((g, i) => {
+    const id = i + 1;
+    T.pages[id] = {id, leaf: true, level: 0, items: g.map(k => ({k, tids: tidsOf(k)})), prev: i ? id - 1 : null, next: i < 4 ? id + 1 : null};
+  });
+  T.pages[6] = {id: 6, leaf: false, level: 1, items: [{k: null, c: 1}, {k: 23, c: 2}, {k: 42, c: 3}]};
+  T.pages[7] = {id: 7, leaf: false, level: 1, items: [{k: null, c: 4}, {k: 80, c: 5}]};
+  T.pages[8] = {id: 8, leaf: false, level: 2, items: [{k: null, c: 6}, {k: 61, c: 7}]};
+  setOp(op);
+}
+
+function setOp(o){
+  op = o;
+  ['eq','range','desc','ins'].forEach(x => $('op-' + x).classList.toggle('sel', x === o));
+  $('f-eq').style.display = o === 'eq' ? '' : 'none';
+  $('f-range').style.display = o === 'range' ? '' : 'none';
+  $('f-desc').style.display = o === 'desc' ? '' : 'none';
+  $('f-ins').style.display = o === 'ins' ? '' : 'none';
+  $('f-ios').style.display = o === 'ins' ? 'none' : '';
+  if (o === 'ins') prepareInsert(); else run();
+}
+
+function vacuum(){
+  H.pages.forEach(p => p.vis = true);
+  if (op === 'ins') prepareInsert(); else run();
+}
+
+// ---------- шаги ----------
+let acc;
+function newAcc(){ acc = {vis: new Set(), hread: new Set()}; }
+function add(title, text, hl){
+  hl = hl || {};
+  const s = {T: clone(T), H: clone(H), cur: hl.cur ?? null, vis: [...acc.vis], items: hl.items || {},
+             hread: hl.hread || [], hskip: hl.hskip || [], rows: hl.rows || {}, newPages: hl.newPages || []};
+  steps.push({title, text, s});
+}
+const levelName = p => p.id === T.meta.root ? 'корень' : (p.leaf ? 'лист' : 'внутренняя');
+const itemText = it => it.k === null ? '−∞' : it.k;
+
+function descend(key, mode, path){
+  let id = T.meta.root;
+  add('Метастраница', `Поиск начинается с <b>метастраницы</b> (блок 0): в ней записано, что корень — <b>блок ${T.meta.root}</b>, а над листьями ${T.meta.level} уровн${T.meta.level === 1 ? 'ь' : 'я'}. Значит, до листа ${T.meta.level + 1} чтения страниц индекса — при любом числе строк в таблице.`, {});
+  while (true){
+    const p = T.pages[id];
+    acc.vis.add(id);
+    if (path) path.push(id);
+    if (p.leaf) return id;
+    let idx;
+    if (mode === 'last') idx = p.items.length - 1;
+    else { idx = 0; p.items.forEach((it, i) => { if (it.k === null || it.k <= key) idx = i; }); }
+    const items = {};
+    p.items.forEach((it, i) => items[id + ':' + i] = i === idx ? 'pick' : 'cmp');
+    const it = p.items[idx], nxt = p.items[idx + 1];
+    let why;
+    if (mode === 'last') why = `Нужны самые большие значения → берём <b>последнюю</b> запись: «${itemText(it)} → блок ${it.c}».`;
+    else why = `Записи внутренней страницы — «ключ → дочерняя страница», у первой ключа нет (−∞). Ищем последнюю запись с ключом ≤ ${key}: «${itemText(it)} → блок ${it.c}»` +
+      (nxt ? `, следующая (${nxt.k}) уже больше ${key}.` : ', она последняя на странице.') +
+      ' На настоящей странице с сотнями записей это <b>двоичный поиск</b>.';
+    add(`Блок ${id} (${levelName(p)})`, `Читаем <b>блок ${id}</b> — ${levelName(p)}. ${why} Спускаемся в <b>блок ${it.c}</b>.`, {cur: id, items});
+    id = it.c;
+  }
+}
+
+function heapVisit(tids, label){
+  const ios = $('ios').checked;
+  const rows = {}, hread = [], hskip = [];
+  tids.forEach(t => {
+    rows[t] = 'hit';
+    const pg = +t.slice(1).split(',')[0];
+    if (ios && H.pages[pg].vis){ if (!hskip.includes(pg)) hskip.push(pg); }
+    else { if (!hread.includes(pg)) hread.push(pg); acc.hread.add(pg); }
+  });
+  let text;
+  if (!ios){
+    text = `По ctid ${tids.join(', ')} читаются страницы кучи <b>${hread.join(', ')}</b>. В индексе лежат только ключ и адрес строки: за остальными колонками (<code>name</code>) и за проверкой видимости версии строки (MVCC: <code>xmin</code>/<code>xmax</code>) идём в кучу.`;
+  } else {
+    text = 'Запрошена только колонка <code>code</code>, и она есть в индексе — это <b>Index Only Scan</b>. ';
+    if (hskip.length) text += `Страниц${hskip.length > 1 ? 'ы' : 'а'} кучи ${hskip.join(', ')} в карте видимости отмечен${hskip.length > 1 ? 'ы' : 'а'} <b>all-visible</b> — версии строк на ${hskip.length > 1 ? 'них' : 'ней'} видны всем, кучу не читаем. `;
+    if (hread.length) text += `Страниц${hread.length > 1 ? 'ы' : 'а'} <b>${hread.join(', ')}</b> не отмечен${hread.length > 1 ? 'ы' : 'а'} all-visible (после последнего VACUUM там были изменения) — приходится читать кучу и проверять видимость. В <code>EXPLAIN</code> это <code>Heap Fetches</code>. Нажмите VACUUM и выполните снова.`;
+  }
+  return {text, rows, hread, hskip};
+}
+
+function finish(res, extra){
+  const idx = acc.vis.size, hp = acc.hread.size;
+  add('Итог', `Результат: <b>${res.length ? res.join(', ') : 'строк нет'}</b>. Прочитано страниц индекса: <b>${idx}</b>, страниц кучи: <b>${hp}</b> из ${H.pages.length}. ${extra || ''}`, {});
+}
+
+// ---------- операции ----------
+function sqlCols(){ return $('ios').checked ? 'code' : '*'; }
+
+function runEq(){
+  const x = +$('x').value;
+  $('sql').textContent = `SELECT ${sqlCols()} FROM goods WHERE code = ${x};`;
+  const leaf = descend(x, 'key');
+  const p = T.pages[leaf];
+  const i = p.items.findIndex(it => it.k === x);
+  const items = {};
+  p.items.forEach((it, j) => items[leaf + ':' + j] = j === i ? 'hit' : 'cmp');
+  if (i < 0){
+    add(`Лист ${leaf}`, `Читаем лист <b>блок ${leaf}</b>: ключи ${p.items.map(it => it.k).join(', ')}. Ключа ${x} здесь нет — а больше ему быть негде: дерево однозначно привело в этот лист. Строк нет, куча не читается.`, {cur: leaf, items});
+    return finish([], '');
+  }
+  const it = p.items[i];
+  const dup = it.tids.length > 1 ? ` Ключ ${x} встречается в ${it.tids.length} строках, но хранится <b>один раз</b> со списком адресов (posting list) — это <b>дедупликация</b> PostgreSQL 13+.` : '';
+  add(`Лист ${leaf}`, `Читаем лист <b>блок ${leaf}</b> и двоичным поиском находим ключ <b>${x}</b>. Рядом с ключом лежит <b>ctid</b> — физический адрес строки в куче (страница, позиция): ${it.tids.join(', ')}.${dup}`, {cur: leaf, items});
+  const hv = heapVisit(it.tids);
+  add('Куча', hv.text, {cur: leaf, items, rows: hv.rows, hread: hv.hread, hskip: hv.hskip});
+  finish(it.tids.map(t => `${x} ${t}`), `Число чтений индекса равно высоте дерева + 1 — поиск логарифмический: при сотнях ключей на странице 3–4 уровня хватает на сотни миллионов строк.`);
+}
+
+function runRange(){
+  let a = +$('a').value, b = +$('b').value;
+  if (a > b) [a, b] = [b, a];
+  $('sql').textContent = `SELECT ${sqlCols()} FROM goods WHERE code BETWEEN ${a} AND ${b};`;
+  let leaf = descend(a, 'key');
+  const res = [];
+  while (leaf !== null){
+    const p = T.pages[leaf];
+    acc.vis.add(leaf);
+    const items = {}, got = [];
+    let stop = false;
+    p.items.forEach((it, j) => {
+      if (stop) return;
+      if (it.k < a) items[leaf + ':' + j] = 'no';
+      else if (it.k <= b){ items[leaf + ':' + j] = 'hit'; got.push(it); }
+      else { items[leaf + ':' + j] = 'pick'; stop = true; }
+    });
+    let text = `Лист <b>блок ${leaf}</b>: `;
+    text += got.length ? `ключи в диапазоне — <b>${got.map(it => it.k).join(', ')}</b>.` : 'подходящих ключей нет.';
+    if (p.items.some(it => it.k < a)) text += ` Ключи меньше ${a} пропускаем: на них мы попали, потому что спуск ведёт в лист, где <i>мог бы</i> лежать ${a}.`;
+    add(`Лист ${leaf}`, text, {cur: leaf, items});
+    if (got.length){
+      const tids = got.flatMap(it => it.tids);
+      const hv = heapVisit(tids);
+      let t2 = hv.text;
+      if (!$('ios').checked) t2 += ' Index Scan ходит в кучу <b>в порядке ключа</b>, а не в физическом порядке страниц: на большом диапазоне одна страница кучи читается много раз вразнобой. Поэтому при большой доле строк планировщик выбирает <code>Bitmap Index Scan → Bitmap Heap Scan</code>: сначала собрать все ctid, потом прочитать каждую страницу один раз по порядку.';
+      add('Куча', t2, {cur: leaf, items, rows: hv.rows, hread: hv.hread, hskip: hv.hskip});
+      got.forEach(it => it.tids.forEach(t => res.push(`${it.k} ${t}`)));
+    }
+    if (stop){
+      const k = p.items.find(it => it.k > b).k;
+      add('Стоп', `Ключ <b>${k} > ${b}</b>. Листья упорядочены, дальше значения только больше — сканирование останавливается. Остальные листья не читаются.`, {cur: leaf, items});
+      break;
+    }
+    if (p.next === null){
+      add('Конец списка', `У блока ${leaf} нет правого соседа — это самый правый лист, значения закончились.`, {cur: leaf, items});
+      break;
+    }
+    add('Правая ссылка', `Ключи листа закончились, а последний (${p.items[p.items.length - 1].k}) ещё ≤ ${b}. В заголовке листа есть ссылка на правого соседа — <b>блок ${p.next}</b>. Переходим по ней, <b>в дерево не поднимаясь</b>: листья связаны в двусвязный список.`, {cur: leaf, items});
+    leaf = p.next;
+  }
+  finish(res, 'Диапазон = один спуск по дереву + проход по цепочке листьев. Строки выходят уже упорядоченными по <code>code</code>, поэтому <code>ORDER BY code</code> не требует сортировки.');
+}
+
+function runDesc(){
+  const n = Math.max(1, +$('n').value);
+  $('sql').textContent = `SELECT ${sqlCols()} FROM goods ORDER BY code DESC LIMIT ${n};`;
+  let leaf = descend(null, 'last');
+  const res = [];
+  while (leaf !== null && res.length < n){
+    const p = T.pages[leaf];
+    acc.vis.add(leaf);
+    const items = {}, got = [];
+    for (let j = p.items.length - 1; j >= 0; j--){
+      if (res.length + got.length < n){ items[leaf + ':' + j] = 'hit'; got.push(p.items[j]); }
+    }
+    add(`Лист ${leaf}`, `Лист <b>блок ${leaf}</b> читаем <b>с конца</b>: ${got.map(it => it.k).join(', ')}. В плане это <code>Index Scan Backward</code> — узла <code>Sort</code> нет, строки и так идут по убыванию.`, {cur: leaf, items});
+    const hv = heapVisit(got.flatMap(it => it.tids));
+    add('Куча', hv.text, {cur: leaf, items, rows: hv.rows, hread: hv.hread, hskip: hv.hskip});
+    got.forEach(it => it.tids.forEach(t => res.push(`${it.k} ${t}`)));
+    if (res.length >= n){
+      add('LIMIT', `Набрано ${res.length} строк(и) — <code>LIMIT ${n}</code> останавливает сканирование. Остальные листья не читались: вот почему <code>ORDER BY … LIMIT</code> по индексу почти бесплатен при любом размере таблицы.`, {cur: leaf, items});
+      break;
+    }
+    if (p.prev === null) break;
+    add('Левая ссылка', `Строк пока ${res.length} из ${n}. По <b>левой</b> ссылке переходим в блок ${p.prev} — у листа есть обе ссылки (prev и next), поэтому список можно читать в обе стороны.`, {cur: leaf, items});
+    leaf = p.prev;
+  }
+  finish(res.slice(0, Math.max(n, res.length)), '');
+}
+
+// ---------- вставка ----------
+let pendingKey = null;
+function prepareInsert(){
+  const k = +$('k').value;
+  $('sql').textContent = `INSERT INTO goods (code, name) VALUES (${k}, 'товар ${k}');`;
+  steps = []; newAcc();
+  add('Готово к вставке', `Нажмите <b>«Выполнить»</b>, чтобы вставить строку с <code>code = ${k}</code>. Сначала строка пишется в кучу, затем её адрес — в индекс. Вставка меняет дерево: следующая операция пойдёт уже по новому дереву.`, {});
+  go(0);
+}
+function runIns(){
+  const k = +$('k').value;
+  $('sql').textContent = `INSERT INTO goods (code, name) VALUES (${k}, 'товар ${k}');`;
+  // 1. куча
+  let hp = H.pages[H.pages.length - 1];
+  let newHeap = false;
+  if (hp.rows.length >= 4){ hp = {id: H.pages.length, rows: [], vis: false}; H.pages.push(hp); newHeap = true; }
+  const tid = `(${hp.id},${hp.rows.length + 1})`;
+  hp.rows.push({tid, code: k});
+  const wasVis = hp.vis; hp.vis = false;
+  add('Строка в кучу', `Строка записывается в кучу туда, где есть место: ${newHeap ? 'на последней странице места нет — берётся новая страница ' + hp.id : 'страница ' + hp.id}, позиция ${hp.rows.length} → <b>ctid ${tid}</b>. Порядка в куче нет — это не кластерный индекс.` +
+      (wasVis ? ` Бит all-visible страницы ${hp.id} в карте видимости <b>сбрасывается</b>: Index Only Scan по этой странице снова пойдёт в кучу до следующего VACUUM.` : ''),
+      {rows: {[tid]: 'new'}, hread: [hp.id]});
+  // 2. спуск
+  const path = [];
+  const leaf = descend(k, 'key', path);
+  const p = T.pages[leaf];
+  const ex = p.items.findIndex(it => it.k === k);
+  if (ex >= 0){
+    p.items[ex].tids.push(tid);
+    add(`Лист ${leaf}`, `В листе <b>блок ${leaf}</b> ключ ${k} уже есть. Новый ctid ${tid} добавляется в его <b>список адресов</b> (posting list) — новая запись индекса не нужна. Это дедупликация (PG 13+): на колонках с повторами индекс в разы меньше.`, {cur: leaf, items: {[leaf + ':' + ex]: 'new'}, rows: {[tid]: 'new'}});
+    return add('Итог', `Вставка закончена без расщеплений. Дерево не изменилось, вырос только список у ключа ${k}.`, {});
+  }
+  let pos = p.items.findIndex(it => it.k > k); if (pos < 0) pos = p.items.length;
+  p.items.splice(pos, 0, {k, tids: [tid]});
+  if (p.items.length <= CAP_LEAF){
+    add(`Лист ${leaf}`, `В листе <b>блок ${leaf}</b> есть место (${p.items.length} из ${CAP_LEAF}). Ключ ${k} встаёт на своё место по порядку, рядом — ctid ${tid}. Другие страницы не меняются.`, {cur: leaf, items: {[leaf + ':' + pos]: 'new'}, rows: {[tid]: 'new'}});
+    return add('Итог', 'Вставка закончена: изменились одна страница кучи и один лист индекса. Расщепления (page split) не было.', {});
+  }
+  const its = {}; p.items.forEach((it, j) => its[leaf + ':' + j] = j === pos ? 'new' : 'cmp');
+  add('Лист переполнен', `Ключ ${k} должен попасть в лист <b>блок ${leaf}</b>, но там уже ${CAP_LEAF} из ${CAP_LEAF} записей — на схеме показано, какой стала бы страница (${p.items.length} записей). Места нет → <b>расщепление страницы (page split)</b>.`, {cur: leaf, items: its, rows: {[tid]: 'new'}});
+  splitUp(leaf, path, true);
+  add('Итог', `Вставка закончена. Дерево растёт <b>вверх</b>: новые страницы добавляются рядом, а при переполнении корня появляется новый корень. Поэтому все листья всегда на одной глубине — дерево сбалансировано. Новые страницы берутся в конце файла индекса — логический порядок листьев расходится с физическим.`, {});
+}
+
+function splitUp(id, path, isLeaf){
+  const p = T.pages[id];
+  const nid = T.next++;
+  let left, right, how;
+  if (isLeaf && p.next === null){
+    left = p.items.slice(0, CAP_LEAF); right = p.items.slice(CAP_LEAF);
+    how = `Это <b>самый правый лист</b>. PostgreSQL делит его не пополам: слева остаётся страница, заполненная до <code>fillfactor</code> (для индекса 90%), в новый блок уходят только самые большие ключи. Так вставка возрастающих значений (последовательности, даты) оставляет страницы плотными, а не наполовину пустыми.`;
+  } else {
+    const h = Math.ceil(p.items.length / 2);
+    left = p.items.slice(0, h); right = p.items.slice(h);
+    how = 'Записи делятся примерно пополам.';
+  }
+  const np = {id: nid, leaf: isLeaf, level: p.level, items: right};
+  p.items = left;
+  let sep;
+  if (isLeaf){
+    sep = right[0].k;
+    np.prev = id; np.next = p.next;
+    if (p.next !== null) T.pages[p.next].prev = nid;
+    p.next = nid;
+  } else {
+    sep = right[0].k; right[0].k = null;
+  }
+  T.pages[nid] = np;
+  const its = {};
+  np.items.forEach((_, j) => its[nid + ':' + j] = 'new');
+  add(`Split блока ${id}`, `${how} В блоке ${id} остаются ${left.map(itemText).join(', ')}; в <b>новый блок ${nid}</b> (взят в конце файла индекса, а не рядом) уходят ${isLeaf ? right.map(itemText).join(', ') : 'записи, начиная с ' + sep}.` +
+    (isLeaf ? ` Ссылки соседей переписываются: блок ${id} → ${nid} → ${np.next === null ? 'конец' : 'блок ' + np.next}.` : ` Ключ ${sep} уходит наверх, а первая запись нового блока становится «−∞».`),
+    {cur: nid, items: its, newPages: [nid]});
+  // в родителя
+  const pi = path.indexOf(id);
+  if (pi === 0){
+    const rid = T.next++;
+    T.pages[rid] = {id: rid, leaf: false, level: p.level + 1, items: [{k: null, c: id}, {k: sep, c: nid}]};
+    T.meta.root = rid; T.meta.level++;
+    add('Новый корень', `Разделился сам корень — ему некуда передать ключ. Создаётся <b>новый корень, блок ${rid}</b>, с двумя записями: «−∞ → ${id}» и «${sep} → ${nid}». Метастраница теперь указывает на блок ${rid}, высота дерева выросла на 1. Это единственный способ, которым B-дерево становится выше.`,
+      {cur: rid, items: {[rid + ':0']: 'new', [rid + ':1']: 'new'}, newPages: [rid]});
+    return;
+  }
+  const par = T.pages[path[pi - 1]];
+  const at = par.items.findIndex(it => it.c === id) + 1;
+  par.items.splice(at, 0, {k: sep, c: nid});
+  const its2 = {}; its2[par.id + ':' + at] = 'new';
+  if (par.items.length <= CAP_IN){
+    add(`Родитель ${par.id}`, `В родителя — <b>блок ${par.id}</b> — добавляется запись «<b>${sep} → ${nid}</b>»: ключи от ${sep} теперь ищутся в новом блоке. Место в родителе есть, на этом расщепление закончено.`, {cur: par.id, items: its2});
+  } else {
+    add(`Родитель ${par.id}`, `В родителя — <b>блок ${par.id}</b> — нужно добавить «${sep} → ${nid}», но там уже ${CAP_IN} ссылки из ${CAP_IN}. Родитель тоже переполнен — расщепление идёт <b>вверх</b>.`, {cur: par.id, items: its2});
+    splitUp(par.id, path, false);
+  }
+}
+
+function run(){
+  steps = []; newAcc();
+  if (op === 'eq') runEq();
+  else if (op === 'range') runRange();
+  else if (op === 'desc') runDesc();
+  else runIns();
+  go(op === 'ins' ? 1 : 0);
+}
+
+// ---------- отрисовка ----------
+function go(i){
+  si = Math.max(0, Math.min(steps.length - 1, i));
+  const st = steps[si];
+  $('cap').innerHTML = `<b class="t">Шаг ${si + 1}. ${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((s, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${s.title}</li>`).join('');
+  draw(st.s);
+}
+function draw(s){
+  const t = s.T;
+  const levels = [];
+  (function walk(id){
+    const p = t.pages[id];
+    const L = t.meta.level - p.level;
+    (levels[L] = levels[L] || []).push(p);
+    if (!p.leaf) p.items.forEach(it => walk(it.c));
+  })(t.meta.root);
+  let html = `<div class="level"><div class="page"><div class="hd">блок 0 · метастраница</div><span class="it">корень = ${t.meta.root}</span><span class="it">уровней = ${t.meta.level}</span></div></div>`;
+  levels.forEach((row, L) => {
+    const isLeaf = row[0].leaf;
+    html += `<div class="lvname">${L === 0 ? 'корень' : isLeaf ? 'листья (уровень 0)' : 'внутренние страницы'}</div><div class="level">`;
+    html += row.map((p, j) => {
+      const cls = p.id === s.cur ? 'cur' : s.vis.includes(p.id) ? 'vis' : '';
+      const nw = s.newPages.includes(p.id) && p.id !== s.cur ? ' new' : '';
+      const its = p.items.map((it, i) => {
+        const c = s.items[p.id + ':' + i] || '';
+        if (p.leaf) return `<span class="it ${c}">${it.k} <span class="t">${it.tids.join(' ')}</span></span>`;
+        return `<span class="it ${c}">${it.k === null ? '−∞' : it.k} → ${it.c}</span>`;
+      }).join(p.leaf ? '<br>' : '');
+      const box = `<div class="page ${cls}${nw}"><div class="hd">блок ${p.id}${p.leaf ? ` · prev ${p.prev ?? '—'} · next ${p.next ?? '—'}` : ''}</div>${its}</div>`;
+      return (isLeaf && j > 0 ? '<span class="link">⇄</span>' : '') + box;
+    }).join('');
+    html += '</div>';
+  });
+  $('tree').innerHTML = html;
+  $('heap').innerHTML = s.H.pages.map(p => {
+    const cls = s.hread.includes(p.id) ? 'read' : s.hskip.includes(p.id) ? 'skip' : '';
+    return `<div class="hp ${cls}"><div class="hd"><span>стр. ${p.id}</span><span class="vm ${p.vis ? 'on' : 'off'}">VM: ${p.vis ? 'all-visible' : 'нет'}</span></div>` +
+      p.rows.map(r => `<div><span class="hr ${s.rows[r.tid] || ''}">${r.tid} code=${r.code}</span></div>`).join('') + '</div>';
+  }).join('');
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+['x','a','b','n'].forEach(id => $(id).addEventListener('change', run));
+$('k').addEventListener('change', prepareInsert);
+resetAll();
+</script>
+</body>
+</html>
