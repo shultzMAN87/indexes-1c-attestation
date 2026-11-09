@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GIN в PostgreSQL — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:960px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:0 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+@media (max-width:720px){.grid{grid-template-columns:1fr}}
+.box{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid #f3f4f6;transition:background .15s}
+.row:last-child{border-bottom:none}
+.ctid{font-family:Consolas,monospace;font-size:12px;color:#6b7280;min-width:42px}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:6px;margin:2px 4px 2px 0;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb}
+.tag.q{background:#fff7ed;color:#9a3412;border-color:#fdba74}
+.row.cand{background:#fef9c3}
+.row.hit{background:#dcfce7}
+.row.drop{background:#fee2e2}
+.row.drop .tags{text-decoration:line-through;text-decoration-color:#b91c1c}
+.badge{margin-left:auto;font-size:11px;padding:1px 7px;border-radius:6px;white-space:nowrap}
+.badge.hit{background:#bbf7d0;color:#166534}
+.badge.drop{background:#fecaca;color:#991b1b}
+.badge.skip{color:#9ca3af}
+.key{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #f3f4f6;cursor:pointer}
+.key:hover{background:#f9fafb}
+.key.q{background:#fff7ed}
+.key .name{min-width:80px;font-size:14px}
+.key.q .name{color:#9a3412;font-weight:700}
+.tid{font-family:Consolas,monospace;font-size:12px;padding:1px 6px;border-radius:5px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;margin-right:4px}
+.tid.on{background:#dcfce7;color:#166534;border-color:#86efac}
+.pend{margin-top:12px;border:1px dashed #ca8a04;background:#fefce8;border-radius:10px;padding:8px 10px;font-size:13px;color:#713f12}
+.steps{margin-top:16px;background:#f9fafb;border-radius:8px;padding:12px 14px;font-size:14px}
+.steps ol{margin:0;padding-left:20px}
+.leg{display:flex;gap:16px;margin-top:12px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+</style>
+</head>
+<body>
+<h1>GIN — инвертированный индекс</h1>
+<p class="sub">Колонка <code>tags</code> — массив меток. Нажимайте на ключи индекса справа, чтобы собрать запрос, и переключайте оператор. К разделу 3.1 методички.</p>
+
+<div class="ctrl">
+  <span style="font-size:14px;color:#6b7280">Оператор:</span>
+  <button id="op-contains" class="sel" onclick="setOp('contains')"><code>@&gt;</code> содержит все</button>
+  <button id="op-overlap" onclick="setOp('overlap')"><code>&amp;&amp;</code> хотя бы один</button>
+  <button id="op-contained" onclick="setOp('contained')"><code>&lt;@</code> содержится в</button>
+</div>
+<div class="ctrl">
+  <button onclick="insertRow()">INSERT новой строки</button>
+  <button onclick="vacuum()">VACUUM (перенести pending list в дерево)</button>
+  <button onclick="resetAll()">Сбросить</button>
+</div>
+
+<div class="sql" id="sql"></div>
+
+<div class="grid">
+  <div>
+    <h2>Таблица (куча): ctid → tags</h2>
+    <div class="box" id="heap"></div>
+  </div>
+  <div>
+    <h2>GIN: дерево ключей → списки ctid</h2>
+    <div class="box" id="index"></div>
+    <div class="pend" id="pending"></div>
+  </div>
+</div>
+
+<div class="steps" id="steps"></div>
+
+<div class="leg">
+  <span><i style="background:#fff7ed;border-color:#fdba74"></i>ключ из запроса</span>
+  <span><i style="background:#dcfce7;border-color:#86efac"></i>строка в результате</span>
+  <span><i style="background:#fee2e2"></i>кандидат, отброшен перепроверкой (Recheck)</span>
+  <span><i style="background:#fef9c3"></i>строка из pending list</span>
+</div>
+
+<script>
+const BASE = [
+  ['(0,1)', ['хит','белый']],
+  ['(0,2)', ['скидка','белый']],
+  ['(0,3)', ['хит','чёрный']],
+  ['(1,1)', ['хит','белый','eco']],
+  ['(1,2)', ['новинка','чёрный']],
+  ['(1,3)', ['скидка']]
+];
+const QUEUE = [
+  ['(2,1)', ['хит','белый','новинка']],
+  ['(2,2)', ['eco']],
+  ['(2,3)', ['скидка','чёрный']]
+];
+let heap, pending, merged, query, op;
+
+function resetAll(){
+  heap = BASE.map(r => [r[0], r[1].slice()]);
+  merged = new Set(heap.map(r => r[0]));
+  pending = [];
+  query = new Set(['хит','белый']);
+  setOp('contains');
+}
+function buildIndex(){
+  const idx = {};
+  heap.filter(r => merged.has(r[0])).forEach(([t, tags]) => tags.forEach(k => (idx[k] = idx[k] || []).push(t)));
+  return idx;
+}
+function setOp(o){
+  op = o;
+  ['contains','overlap','contained'].forEach(x => document.getElementById('op-' + x).classList.toggle('sel', x === o));
+  render();
+}
+function toggleKey(k){ query.has(k) ? query.delete(k) : query.add(k); render(); }
+function insertRow(){
+  const next = QUEUE.find(q => !heap.some(r => r[0] === q[0]));
+  if (!next) return;
+  heap.push([next[0], next[1].slice()]);
+  pending.push(next[0]);
+  render();
+}
+function vacuum(){ pending.forEach(t => merged.add(t)); pending = []; render(); }
+
+function matches(tags){
+  const q = [...query];
+  if (op === 'contains')  return q.every(k => tags.includes(k));
+  if (op === 'overlap')   return q.some(k => tags.includes(k));
+  return tags.every(k => query.has(k));
+}
+function search(idx){
+  const q = [...query];
+  if (!q.length) return {cand: new Set(), lists: []};
+  const lists = q.map(k => [k, idx[k] || []]);
+  let cand;
+  if (op === 'contains') {
+    cand = lists.map(l => l[1]).reduce((a, b) => a.filter(x => b.includes(x)));
+  } else {
+    cand = [...new Set(lists.flatMap(l => l[1]))];
+  }
+  const pend = heap.filter(r => pending.includes(r[0]) && r[1].some(k => query.has(k))).map(r => r[0]);
+  return {cand: new Set([...cand, ...pend]), lists, pend};
+}
+
+function render(){
+  const idx = buildIndex();
+  const keys = Object.keys(idx).sort((a, b) => a.localeCompare(b, 'ru'));
+  [...query].forEach(k => { if (!keys.includes(k)) keys.push(k); });
+  const {cand, lists, pend = []} = search(idx);
+  const res = new Set([...cand].filter(t => matches(heap.find(r => r[0] === t)[1])));
+  const opSql = {contains: '@>', overlap: '&&', contained: '<@'}[op];
+
+  document.getElementById('sql').textContent = query.size
+    ? `SELECT * FROM goods WHERE tags ${opSql} '{${[...query].join(', ')}}';`
+    : '-- выберите хотя бы один ключ в индексе справа';
+
+  document.getElementById('heap').innerHTML = heap.map(([t, tags]) => {
+    const inPend = pending.includes(t);
+    let cls = '', badge = '<span class="badge skip">не читается</span>';
+    if (res.has(t)) { cls = 'hit'; badge = '<span class="badge hit">в результате</span>'; }
+    else if (cand.has(t)) { cls = 'drop'; badge = '<span class="badge drop">Recheck: нет</span>'; }
+    else if (inPend) { cls = 'cand'; badge = '<span class="badge skip">в pending list</span>'; }
+    return `<div class="row ${cls}"><span class="ctid">${t}</span><span class="tags">${tags.map(k => `<span class="tag ${query.has(k) ? 'q' : ''}">${k}</span>`).join('')}</span>${badge}</div>`;
+  }).join('');
+
+  document.getElementById('index').innerHTML = keys.map(k => {
+    const list = idx[k] || [];
+    return `<div class="key ${query.has(k) ? 'q' : ''}" onclick="toggleKey('${k}')"><span class="name">${k}</span><span>${
+      list.length ? list.map(t => `<span class="tid ${query.has(k) && cand.has(t) ? 'on' : ''}">${t}</span>`).join('') : '<span style="color:#9ca3af;font-size:12px">пока нет в дереве</span>'
+    }</span></div>`;
+  }).join('');
+
+  document.getElementById('pending').innerHTML = pending.length
+    ? `<b>Pending list (fastupdate):</b> ${pending.map(t => `<span class="tid">${t}</span>`).join('')} — новые строки ещё не разнесены по спискам ключей. Поиск каждый раз просматривает этот список целиком.`
+    : '<b>Pending list пуст.</b> Нажмите «INSERT новой строки»: запись сначала попадёт сюда, а в дерево ключей — только после VACUUM.';
+
+  let html = '';
+  if (!query.size) html = 'Выберите ключи в индексе.';
+  else {
+    const fmt = a => '{' + a.join(', ') + '}';
+    html = '<ol>';
+    html += '<li>Из условия извлекаются ключи: ' + [...query].map(k => `<b>${k}</b>`).join(', ') + '. Каждый ищется в дереве ключей один раз.</li>';
+    html += '<li>Списки строк: ' + lists.map(([k, l]) => `${k} → <span class="mono">${fmt(l)}</span>`).join('; ') + '.</li>';
+    if (op === 'contains') html += '<li><b>Пересечение</b> списков: строка должна содержать все ключи.</li>';
+    if (op === 'overlap')  html += '<li><b>Объединение</b> списков: достаточно одного ключа.</li>';
+    if (op === 'contained') html += '<li><b>Объединение</b> списков: индекс знает только «в строке есть такой элемент». Что в строке нет <i>лишних</i> элементов, он проверить не может — это сделает перепроверка в куче.</li>';
+    if (pend.length) html += `<li>Плюс строки из pending list, где есть хотя бы один ключ: <span class="mono">${fmt(pend)}</span>.</li>`;
+    html += `<li>Кандидаты → битовая карта → Bitmap Heap Scan: читаются только строки <span class="mono">${fmt([...cand])}</span>.</li>`;
+    const dropped = [...cand].filter(t => !res.has(t));
+    html += `<li>Recheck условия по самой строке: в результате <b style="color:#166534">${fmt([...res])}</b>` +
+            (dropped.length ? `, отброшено <b style="color:#991b1b">${fmt(dropped)}</b>` : ', лишних нет') + `. Остальные ${heap.length - cand.size} строк(и) не читались.</li>`;
+    html += '</ol>';
+  }
+  document.getElementById('steps').innerHTML = html;
+}
+resetAll();
+</script>
+</body>
+</html>

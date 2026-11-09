@@ -136,6 +136,75 @@ FROM gin_metapage_info(get_raw_page('demo_gin_tags', 0));     -- 0: перене
 -- \timing on  (в psql)  и повторить INSERT выше
 
 -- ---------------------------------------------------------------------
+-- 5. Откуда берутся лишние строки (Rows Removed by Index Recheck)
+--    Recheck Cond есть в любом Bitmap Heap Scan, но строки отбрасываются,
+--    только когда индекс вернул кандидатов «с запасом». Три причины.
+-- ---------------------------------------------------------------------
+VACUUM demo_gin;   -- перенести pending list после части 4 (отдельной командой)
+
+-- 5.1. @> по массиву точен: перепроверка ничего не отбрасывает
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
+SELECT count(*) FROM demo_gin WHERE tags @> ARRAY['хит', 'белый'];
+-- Bitmap Index Scan: rows=20000, Rows Removed by Index Recheck — нет
+
+-- 5.2. Причина 1: оператор не проверить по ключам.
+--      <@ «все метки строки входят в набор»: индекс берёт ОБЪЕДИНЕНИЕ списков
+--      хит, белый, eco (строки, где есть хотя бы одна из них), а «нет ли
+--      в строке ЛИШНИХ меток» проверяется только в куче
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
+SELECT count(*) FROM demo_gin WHERE tags <@ ARRAY['хит', 'белый', 'eco'];
+-- PG 16: Bitmap Index Scan rows=180000, Rows Removed by Index Recheck: 140000,
+--        в результате 40000
+
+-- 5.3. Причина 2: jsonb_ops хранит имена ключей и значения ОТДЕЛЬНЫМИ элементами.
+--      {"color":"красный","case":"синий"} содержит и элемент color, и элемент синий,
+--      хотя пары color = синий в нём нет — это кандидат, его отсеет перепроверка.
+--      jsonb_path_ops хранит хеш пары «путь + значение» и такой ошибки не делает.
+DROP TABLE IF EXISTS demo_json;
+CREATE TABLE demo_json (id int GENERATED ALWAYS AS IDENTITY, attrs jsonb);
+INSERT INTO demo_json (attrs)
+SELECT CASE WHEN g % 2 = 0 THEN '{"color":"красный","case":"синий"}'::jsonb
+            ELSE '{"color":"синий","case":"чёрный"}'::jsonb END
+FROM generate_series(1, 100000) AS g;
+CREATE INDEX demo_json_ops  ON demo_json USING gin (attrs);                 -- jsonb_ops
+CREATE INDEX demo_json_path ON demo_json USING gin (attrs jsonb_path_ops);
+VACUUM ANALYZE demo_json;
+
+SET enable_seqscan = off;   -- только для демонстрации: половина таблицы подходит
+
+BEGIN;
+DROP INDEX demo_json_path;  -- оставить только jsonb_ops (откатится)
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
+SELECT count(*) FROM demo_json WHERE attrs @> '{"color": "синий"}';
+ROLLBACK;
+-- PG 16: Bitmap Index Scan rows=100000, Rows Removed by Index Recheck: 50000
+
+BEGIN;
+DROP INDEX demo_json_ops;   -- оставить только jsonb_path_ops (откатится)
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
+SELECT count(*) FROM demo_json WHERE attrs @> '{"color": "синий"}';
+ROLLBACK;
+-- PG 16: Bitmap Index Scan rows=50000, лишних строк нет
+
+-- 5.4. Причина 3: битовая карта не поместилась в work_mem и стала
+--      неточной (lossy): для части страниц хранится только номер страницы,
+--      и перепроверяются ВСЕ строки этих страниц
+SET work_mem = '64kB';
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
+SELECT count(*) FROM demo_gin WHERE tags @> ARRAY['хит'];
+-- PG 16: Heap Blocks: exact=398 lossy=3997, Rows Removed by Index Recheck — десятки тысяч
+RESET work_mem;
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
+SELECT count(*) FROM demo_gin WHERE tags @> ARRAY['хит'];
+-- с обычным work_mem: Heap Blocks: exact=7895, лишних строк нет
+RESET enable_seqscan;
+
+-- 5.5. Селективность: GIN силён, когда хотя бы один ключ запроса редкий
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF, TIMING OFF)
+SELECT count(*) FROM demo_gin WHERE attrs @> '{"promo": true}';
+-- 1 % строк: Bitmap Index Scan — Buffers: shared hit=3
+
+-- ---------------------------------------------------------------------
 -- Уборка
 -- ---------------------------------------------------------------------
--- DROP TABLE demo_gin; DROP TABLE demo_fts;
+-- DROP TABLE demo_gin; DROP TABLE demo_fts; DROP TABLE demo_json;
