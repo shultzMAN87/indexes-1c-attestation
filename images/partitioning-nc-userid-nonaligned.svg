@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="532" viewBox="0 0 880 532" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<rect x="0.5" y="0.5" width="879" height="531" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="30" font-size="17" fill="#111827" text-anchor="start" font-weight="700">Вариант 3б. Кластерный по дате + некластерный по UserID, невыровненный</text>
+<text x="24" y="56" font-size="13" fill="#4b5563" text-anchor="start">Кластерный (VisitDate, UserID) на схеме секционирования; некластерный (UserID) создан ON [PRIMARY].</text>
+<text x="24" y="76" font-size="13" fill="#4b5563" text-anchor="start">Данные секционированы, а индекс по UserID — одно общее (глобальное) дерево.</text>
+<text x="24" y="104" font-size="12" fill="#6b7280" text-anchor="start">Секции (по месяцам):</text>
+<text x="330" y="104" font-size="12" fill="#111827" text-anchor="middle" font-weight="700">Янв</text>
+<text x="418" y="104" font-size="12" fill="#111827" text-anchor="middle" font-weight="700">Фев</text>
+<text x="506" y="104" font-size="12" fill="#111827" text-anchor="middle" font-weight="700">Мар</text>
+<text x="594" y="104" font-size="12" fill="#111827" text-anchor="middle" font-weight="700">ещё 33</text>
+<text x="24" y="136" font-size="13" fill="#111827" text-anchor="start" font-weight="700">Кластерный (VisitDate, UserID)</text>
+<text x="24" y="154" font-size="12" fill="#6b7280" text-anchor="start">= сами данные, 36 деревьев</text>
+<polygon points="330,118 299,158 361,158" fill="#dcfce7" stroke="#16a34a" stroke-width="1.3"/>
+<text x="330" y="173" font-size="11" fill="#166534" text-anchor="middle">по дате</text>
+<polygon points="418,118 387,158 449,158" fill="#dcfce7" stroke="#16a34a" stroke-width="1.3"/>
+<text x="418" y="173" font-size="11" fill="#166534" text-anchor="middle">по дате</text>
+<polygon points="506,118 475,158 537,158" fill="#dcfce7" stroke="#16a34a" stroke-width="1.3"/>
+<text x="506" y="173" font-size="11" fill="#166534" text-anchor="middle">по дате</text>
+<polygon points="594,118 563,158 625,158" fill="#dcfce7" stroke="#16a34a" stroke-width="1.3"/>
+<text x="594" y="173" font-size="11" fill="#166534" text-anchor="middle">по дате</text>
+<text x="24" y="202" font-size="13" fill="#111827" text-anchor="start" font-weight="700">Некластерный (UserID)</text>
+<text x="24" y="220" font-size="12" fill="#6b7280" text-anchor="start">невыровненный, 1 дерево</text>
+<polygon points="462,184 288,224 636,224" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.3"/>
+<text x="462" y="239" font-size="11" fill="#5b21b6" text-anchor="middle">одно дерево по UserID на всю таблицу</text>
+<line x1="16" y1="254" x2="864" y2="254" stroke="#e5e7eb"/>
+<text x="24" y="272" font-size="12" fill="#6b7280" text-anchor="start" font-weight="700">Запрос</text>
+<text x="462" y="272" font-size="12" fill="#6b7280" text-anchor="middle" font-weight="700">Что читается</text>
+<text x="650" y="272" font-size="12" fill="#6b7280" text-anchor="start" font-weight="700">Итог</text>
+<text x="24" y="306" font-size="12" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">VisitDate = '2026-02-15'</text>
+<rect x="291" y="288" width="78" height="40" rx="6" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text x="330" y="313" font-size="12" fill="#9ca3af" text-anchor="middle">—</text>
+<rect x="379" y="288" width="78" height="40" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.3"/>
+<text x="418" y="313" font-size="12" fill="#1e3a8a" text-anchor="middle" font-weight="700">Seek</text>
+<rect x="467" y="288" width="78" height="40" rx="6" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text x="506" y="313" font-size="12" fill="#9ca3af" text-anchor="middle">—</text>
+<rect x="555" y="288" width="78" height="40" rx="6" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text x="594" y="313" font-size="12" fill="#9ca3af" text-anchor="middle">—</text>
+<text x="650" y="304" font-size="12" fill="#15803d" text-anchor="start" font-weight="700">1 секция, только нужный день</text>
+<text x="650" y="320" font-size="12" fill="#15803d" text-anchor="start">(работает кластерный)</text>
+<text x="24" y="362" font-size="12" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">UserID = 42</text>
+<text x="24" y="378" font-size="12" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">AND VisitDate в феврале</text>
+<rect x="288" y="344" width="348" height="40" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.3"/>
+<text x="462" y="369" font-size="12" fill="#1e3a8a" text-anchor="middle" font-weight="700">Seek в общем дереве + фильтр по дате</text>
+<text x="650" y="360" font-size="12" fill="#15803d" text-anchor="start" font-weight="700">1 спуск в большом дереве</text>
+<text x="24" y="418" font-size="12" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">UserID = 42</text>
+<text x="24" y="434" font-size="12" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">(без даты)</text>
+<rect x="288" y="400" width="348" height="40" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.3"/>
+<text x="462" y="425" font-size="12" fill="#1e3a8a" text-anchor="middle" font-weight="700">Seek в общем дереве</text>
+<text x="650" y="416" font-size="12" fill="#15803d" text-anchor="start" font-weight="700">1 спуск вместо 36</text>
+<rect x="16" y="458" width="848" height="34" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+<text x="32" y="480" font-size="13" fill="#b91c1c" text-anchor="start" font-weight="700">SWITCH запрещён, пока индекс есть: перед ротацией — DROP/DISABLE и перестройка целиком</text>
+<rect x="24" y="504" width="16" height="12" rx="3" fill="#f3f4f6" stroke="#d1d5db"/>
+<text x="46" y="515" font-size="12" fill="#4b5563" text-anchor="start">не читается</text>
+<rect x="135" y="504" width="16" height="12" rx="3" fill="#ffedd5" stroke="#ea580c"/>
+<text x="157" y="515" font-size="12" fill="#4b5563" text-anchor="start">Scan — читается целиком</text>
+<rect x="330" y="504" width="16" height="12" rx="3" fill="#dbeafe" stroke="#2563eb"/>
+<text x="352" y="515" font-size="12" fill="#4b5563" text-anchor="start">Seek — спуск только к нужным строкам</text>
+</svg>

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="624" viewBox="0 0 880 624" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs><marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker><marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker></defs>
+<rect x="0.5" y="0.5" width="879" height="623" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="30" font-size="17" fill="#111827" text-anchor="start" font-weight="700">Что меняет SWITCH: владельца страниц, а не сами страницы</text>
+<text x="24" y="54" font-size="13" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">ALTER TABLE dbo.Orders SWITCH PARTITION 2 TO dbo.Orders_Stage;</text>
+<rect x="16" y="72" width="848" height="228" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1.2"/>
+<text x="32" y="98" font-size="14" fill="#111827" text-anchor="start" font-weight="700">До SWITCH</text>
+<text x="40" y="122" font-size="12" fill="#6b7280" text-anchor="start">Метаданные: кому принадлежит набор страниц</text>
+<text x="560" y="122" font-size="12" fill="#6b7280" text-anchor="start">Страницы на диске — не двигаются</text>
+<rect x="40" y="134" width="300" height="34" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="52" y="156" font-size="13" fill="#1e3a8a" text-anchor="start" font-weight="700">Orders · секция 2 · январь</text>
+<rect x="40" y="178" width="300" height="34" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="52" y="200" font-size="13" fill="#1e3a8a" text-anchor="start" font-weight="700">Orders · секция 3 · февраль</text>
+<rect x="40" y="222" width="300" height="34" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="52" y="244" font-size="13" fill="#1e3a8a" text-anchor="start" font-weight="700">Orders · секция 4 · март</text>
+<rect x="40" y="266" width="300" height="34" rx="6" fill="#fff7ed" stroke="#fdba74" stroke-width="1.2"/>
+<text x="52" y="288" font-size="13" fill="#9a3412" text-anchor="start" font-weight="700">Orders_Stage (несекционированная)</text>
+<rect x="560" y="134" width="280" height="34" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.2"/>
+<text x="572" y="156" font-size="13" fill="#111827" text-anchor="start" font-weight="700">Набор страниц A</text>
+<text x="828" y="156" font-size="12" fill="#4b5563" text-anchor="end">12 млн строк январь</text>
+<rect x="560" y="178" width="280" height="34" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.2"/>
+<text x="572" y="200" font-size="13" fill="#111827" text-anchor="start" font-weight="700">Набор страниц B</text>
+<text x="828" y="200" font-size="12" fill="#4b5563" text-anchor="end">11 млн строк февраль</text>
+<rect x="560" y="222" width="280" height="34" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.2"/>
+<text x="572" y="244" font-size="13" fill="#111827" text-anchor="start" font-weight="700">Набор страниц C</text>
+<text x="828" y="244" font-size="12" fill="#4b5563" text-anchor="end">13 млн строк март</text>
+<rect x="560" y="266" width="280" height="34" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="572" y="288" font-size="13" fill="#9ca3af" text-anchor="start" font-weight="700">Набор страниц D</text>
+<text x="828" y="288" font-size="12" fill="#9ca3af" text-anchor="end">пустой</text>
+<line x1="340" y1="151" x2="556" y2="151" stroke="#9ca3af" stroke-width="1.3" marker-end="url(#g)"/>
+<line x1="340" y1="195" x2="556" y2="195" stroke="#9ca3af" stroke-width="1.3" marker-end="url(#g)"/>
+<line x1="340" y1="239" x2="556" y2="239" stroke="#9ca3af" stroke-width="1.3" marker-end="url(#g)"/>
+<line x1="340" y1="283" x2="556" y2="283" stroke="#9ca3af" stroke-width="1.3" marker-end="url(#g)"/>
+<rect x="16" y="314" width="848" height="228" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1.2"/>
+<text x="32" y="340" font-size="14" fill="#111827" text-anchor="start" font-weight="700">После SWITCH</text>
+<text x="40" y="364" font-size="12" fill="#6b7280" text-anchor="start">Метаданные: кому принадлежит набор страниц</text>
+<text x="560" y="364" font-size="12" fill="#6b7280" text-anchor="start">Страницы на диске — не двигаются</text>
+<rect x="40" y="376" width="300" height="34" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="52" y="398" font-size="13" fill="#1e3a8a" text-anchor="start" font-weight="700">Orders · секция 2 · январь — пусто</text>
+<rect x="40" y="420" width="300" height="34" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="52" y="442" font-size="13" fill="#1e3a8a" text-anchor="start" font-weight="700">Orders · секция 3 · февраль</text>
+<rect x="40" y="464" width="300" height="34" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="52" y="486" font-size="13" fill="#1e3a8a" text-anchor="start" font-weight="700">Orders · секция 4 · март</text>
+<rect x="40" y="508" width="300" height="34" rx="6" fill="#fff7ed" stroke="#fdba74" stroke-width="1.2"/>
+<text x="52" y="530" font-size="13" fill="#9a3412" text-anchor="start" font-weight="700">Orders_Stage (несекционированная)</text>
+<rect x="560" y="376" width="280" height="34" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.2"/>
+<text x="572" y="398" font-size="13" fill="#111827" text-anchor="start" font-weight="700">Набор страниц A</text>
+<text x="828" y="398" font-size="12" fill="#4b5563" text-anchor="end">12 млн строк январь</text>
+<rect x="560" y="420" width="280" height="34" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.2"/>
+<text x="572" y="442" font-size="13" fill="#111827" text-anchor="start" font-weight="700">Набор страниц B</text>
+<text x="828" y="442" font-size="12" fill="#4b5563" text-anchor="end">11 млн строк февраль</text>
+<rect x="560" y="464" width="280" height="34" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.2"/>
+<text x="572" y="486" font-size="13" fill="#111827" text-anchor="start" font-weight="700">Набор страниц C</text>
+<text x="828" y="486" font-size="12" fill="#4b5563" text-anchor="end">13 млн строк март</text>
+<rect x="560" y="508" width="280" height="34" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="572" y="530" font-size="13" fill="#9ca3af" text-anchor="start" font-weight="700">Набор страниц D</text>
+<text x="828" y="530" font-size="12" fill="#9ca3af" text-anchor="end">пустой</text>
+<line x1="340" y1="393" x2="556" y2="525" stroke="#ea580c" stroke-width="2.4" marker-end="url(#o)"/>
+<line x1="340" y1="437" x2="556" y2="437" stroke="#9ca3af" stroke-width="1.3" marker-end="url(#g)"/>
+<line x1="340" y1="481" x2="556" y2="481" stroke="#9ca3af" stroke-width="1.3" marker-end="url(#g)"/>
+<line x1="340" y1="525" x2="556" y2="393" stroke="#ea580c" stroke-width="2.4" marker-end="url(#o)"/>
+<text x="24" y="562" font-size="13" fill="#111827" text-anchor="start">Секция 2 и Orders_Stage обменялись наборами страниц: январь теперь «числится» за Orders_Stage,</text>
+<text x="24" y="582" font-size="13" fill="#111827" text-anchor="start">а у секции 2 — пустой набор. Строки не копируются, в журнал пишется только изменение метаданных.</text>
+<text x="24" y="606" font-size="13" fill="#ea580c" text-anchor="start" font-weight="700">Проверить: hobt_id секции 2 до SWITCH совпадёт с hobt_id Orders_Stage после (sys.partitions).</text>
+</svg>

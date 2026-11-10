@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="614" viewBox="0 0 880 614" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs><marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker><marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker></defs>
+<rect x="0.5" y="0.5" width="879" height="613" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="30" font-size="17" fill="#111827" text-anchor="start" font-weight="700">Три направления SWITCH и главное условие каждого</text>
+<rect x="16" y="50" width="848" height="150" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1.2"/>
+<text x="32" y="76" font-size="14" fill="#111827" text-anchor="start" font-weight="700">1. Выгрузка: секция → пустая таблица</text>
+<text x="32" y="98" font-size="12" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">ALTER TABLE Orders SWITCH PARTITION 2 TO Orders_Stage;</text>
+<rect x="40" y="116" width="220" height="64" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="150" y="143" font-size="13" fill="#111827" text-anchor="middle" font-weight="700">Orders</text>
+<text x="150" y="163" font-size="12" fill="#4b5563" text-anchor="middle">секция 2 · январь</text>
+<rect x="330" y="116" width="220" height="64" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="440" y="143" font-size="13" fill="#111827" text-anchor="middle" font-weight="700">Orders_Stage</text>
+<text x="440" y="163" font-size="12" fill="#6b7280" text-anchor="middle">пустая таблица</text>
+<line x1="264" y1="148" x2="324" y2="148" stroke="#ea580c" stroke-width="2.4" marker-end="url(#o)"/>
+<text x="580" y="130" font-size="12" fill="#15803d" text-anchor="start" font-weight="700">Данные не проверяются: секция уже</text>
+<text x="580" y="148" font-size="12" fill="#15803d" text-anchor="start">гарантирует диапазон. CHECK на Stage</text>
+<text x="580" y="166" font-size="12" fill="#15803d" text-anchor="start">не нужен.</text>
+<rect x="16" y="212" width="848" height="150" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1.2"/>
+<text x="32" y="238" font-size="14" fill="#111827" text-anchor="start" font-weight="700">2. Загрузка: таблица → пустая секция</text>
+<text x="32" y="260" font-size="12" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">ALTER TABLE Orders_Stage SWITCH TO Orders PARTITION 2;</text>
+<rect x="40" y="278" width="220" height="64" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="150" y="305" font-size="13" fill="#111827" text-anchor="middle" font-weight="700">Orders_Stage</text>
+<text x="150" y="325" font-size="12" fill="#4b5563" text-anchor="middle">+ доверенный CHECK</text>
+<rect x="330" y="278" width="220" height="64" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="440" y="305" font-size="13" fill="#111827" text-anchor="middle" font-weight="700">Orders</text>
+<text x="440" y="325" font-size="12" fill="#6b7280" text-anchor="middle">секция 2 — пустая</text>
+<line x1="264" y1="310" x2="324" y2="310" stroke="#ea580c" stroke-width="2.4" marker-end="url(#o)"/>
+<text x="580" y="292" font-size="12" fill="#b45309" text-anchor="start" font-weight="700">Нужен CHECK на Stage, точно</text>
+<text x="580" y="310" font-size="12" fill="#b45309" text-anchor="start">повторяющий границы секции (и</text>
+<text x="580" y="328" font-size="12" fill="#b45309" text-anchor="start">исключающий NULL). Иначе — ошибка 4972.</text>
+<rect x="16" y="374" width="848" height="150" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1.2"/>
+<text x="32" y="400" font-size="14" fill="#111827" text-anchor="start" font-weight="700">3. Секция → секция другой таблицы</text>
+<text x="32" y="422" font-size="12" fill="#111827" text-anchor="start" font-family="Consolas, 'DejaVu Sans Mono', monospace">ALTER TABLE Orders SWITCH PARTITION 2 TO Orders_Archive PARTITION 2;</text>
+<rect x="40" y="440" width="220" height="64" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="150" y="467" font-size="13" fill="#111827" text-anchor="middle" font-weight="700">Orders</text>
+<text x="150" y="487" font-size="12" fill="#4b5563" text-anchor="middle">секция 2 · январь</text>
+<rect x="330" y="440" width="220" height="64" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="440" y="467" font-size="13" fill="#111827" text-anchor="middle" font-weight="700">Orders_Archive</text>
+<text x="440" y="487" font-size="12" fill="#6b7280" text-anchor="middle">секция 2 — пустая</text>
+<line x1="264" y1="472" x2="324" y2="472" stroke="#ea580c" stroke-width="2.4" marker-end="url(#o)"/>
+<text x="580" y="454" font-size="12" fill="#1d4ed8" text-anchor="start" font-weight="700">Обе таблицы секционированы;</text>
+<text x="580" y="472" font-size="12" fill="#1d4ed8" text-anchor="start">целевая секция должна вмещать</text>
+<text x="580" y="490" font-size="12" fill="#1d4ed8" text-anchor="start">диапазон исходной (проще: та же функция).</text>
+<rect x="16" y="536" width="848" height="62" rx="6" fill="#fef2f2" stroke="#fecaca" stroke-width="1.2"/>
+<text x="32" y="560" font-size="13" fill="#b91c1c" text-anchor="start" font-weight="700">Во всех трёх случаях: одна файловая группа, одинаковые колонки и индексы, приёмник пуст,</text>
+<text x="32" y="580" font-size="13" fill="#b91c1c" text-anchor="start" font-weight="700">индексы секционированной таблицы выровнены, на время операции — блокировка Sch-M обеих таблиц.</text>
+</svg>

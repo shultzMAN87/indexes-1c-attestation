@@ -60,7 +60,9 @@
 ### [Глава 4. Секционирование и индексы](docs/04-sekcionirovanie.md)
 - 4.0. Секционирование на пальцах: зачем оно, как устроено, когда применять
 - 4.1. ★ Индексы и секционирование в MS SQL: выровненные индексы, `SWITCH`, partition elimination
+- 4.1a. Как работает `SWITCH`: что переключается, три направления, условия, блокировки, ошибки
 - 4.2. Секционирование и операция Seek
+- 4.2a. Секционирование по дате и поиск по пользователю: выровненный и невыровненный кластерный индекс
 - 4.3. Скользящее окно: `SPLIT`, `MERGE`, `SWITCH`
 - 4.4. Глобальные и локальные индексы
 - 4.5. Секционирование в PostgreSQL и уникальность
@@ -100,6 +102,7 @@
 | [sql/mssql/02_row_storage_lob.sql](sql/mssql/02_row_storage_lob.sql) | Страница и запись; IN_ROW / ROW_OVERFLOW / LOB на примерах 200 КБ и 500 КБ, две большие колонки, `ntext`/`image`; `lob logical reads` при `SELECT`, `LIKE`, `SUBSTRING` | [2.9](docs/02-mssql.md#29-как-ms-sql-хранит-строки-на-страницах-in_row-row_overflow-и-lob), [5.11](docs/05-1c.md#511-как-хранятся-длинные-строки-и-хранилищезначения-1с-и-что-происходит-при-отборе-подобно) |
 | [sql/mssql/07_rcsi_version_tag.sql](sql/mssql/07_rcsi_version_tag.sql) | RCSI: метка версии 14 байт, рост записей и page split при fill factor 100, version store, ghost-записи, состояние после `REBUILD` | [2.10](docs/02-mssql.md#210-как-read-committed-snapshot-влияет-на-индексы-метка-версии-version-store-ghost-записи) |
 | [sql/mssql/08_nonclustered_columnstore.sql](sql/mssql/08_nonclustered_columnstore.sql) | Некластерный columnstore на обычной таблице без её пересоздания: выбор B-tree или NCCI под запрос, deltastore и delete buffer при DML (`sys.internal_partitions`), фильтрованный NCCI и `COMPRESSION_DELAY`, batch mode on rowstore | [2.5](docs/02-mssql.md#25-чем-columnstore-отличается-от-rowstore-и-для-каких-нагрузок-он-подходит) |
+| [sql/mssql/09_partitioning_clustered_choice.sql](sql/mssql/09_partitioning_clustered_choice.sql) | Секционирование по дате при поиске по пользователю: кластерный по `UserID` выровненный и невыровненный, кластерный по дате + некластерный выровненный и глобальный; `Scan count` для трёх запросов, ошибка 7733 при `SWITCH` и обход | [4.2a](docs/04-sekcionirovanie.md#42a-секционирование-по-дате-и-поиск-по-пользователю-выровненный-и-невыровненный-кластерный-индекс) |
 | [sql/postgresql/00_index_types_overview.sql](sql/postgresql/00_index_types_overview.sql) | Какие типы индексов установлены, что умеет каждый, классы операторов | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/01_btree.sql](sql/postgresql/01_btree.sql) | B-tree изнутри (`pageinspect`) с разбором вывода каждого запроса: метастраница, корень, внутренняя страница, лист, high key, `ctid` в листьях, как читать байты ключа, дедупликация; Index / Index Only / Bitmap / Seq Scan | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
 | [sql/postgresql/02_hash.sql](sql/postgresql/02_hash.sql) | Hash: корзины и хеш-коды, размер против B-tree на длинных строках, что не умеет | [3.1](docs/03-postgresql.md#31-какие-типы-индексов-есть-в-postgresql-и-для-чего-каждый) |
