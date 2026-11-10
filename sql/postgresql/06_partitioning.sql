@@ -44,6 +44,10 @@ SELECT tablename, indexname FROM pg_indexes WHERE tablename LIKE 'sales%' ORDER 
 EXPLAIN SELECT * FROM sales WHERE sale_date = '2024-02-10' AND customer = 5;  -- только sales_2024_02
 EXPLAIN SELECT * FROM sales WHERE customer = 5;                               -- все секции
 
+-- Функция над колонкой ломает отсечение (раздел 4.6): в плане снова все секции
+EXPLAIN SELECT count(*) FROM sales WHERE date_trunc('month', sale_date) = '2024-02-01';
+EXPLAIN SELECT count(*) FROM sales WHERE sale_date >= '2024-02-01' AND sale_date < '2024-03-01';
+
 -- Отсечение во время выполнения (параметр) — смотрите «Subplans Removed»
 PREPARE q(date) AS SELECT count(*) FROM sales WHERE sale_date = $1;
 SET plan_cache_mode = force_generic_plan;
@@ -62,3 +66,18 @@ ALTER TABLE sales ATTACH PARTITION sales_2024_04 FOR VALUES FROM ('2024-04-01') 
 
 SELECT inhrelid::regclass AS partition_name
 FROM pg_inherits WHERE inhparent = 'sales'::regclass ORDER BY 1;
+
+-- 8. Секция DEFAULT и её цена (раздел 4.6)
+-- Без подходящей секции вставка падает: no partition of relation "sales" found for row
+-- INSERT INTO sales VALUES (100001, '2024-05-10', 1, 10);
+
+CREATE TABLE sales_default PARTITION OF sales DEFAULT;
+INSERT INTO sales VALUES (100001, '2024-05-10', 1, 10);   -- легла в sales_default
+
+-- Теперь секцию за май подключить нельзя: в DEFAULT уже есть строка её диапазона
+-- ERROR: updated partition constraint for default partition "sales_default" would be violated by some row
+-- CREATE TABLE sales_2024_05 PARTITION OF sales FOR VALUES FROM ('2024-05-01') TO ('2024-06-01');
+
+-- И DETACH ... CONCURRENTLY при наличии DEFAULT запрещён:
+-- ERROR: cannot detach partitions concurrently when a default partition exists
+-- ALTER TABLE sales DETACH PARTITION sales_2024_02 CONCURRENTLY;

@@ -75,6 +75,17 @@ SELECT * FROM dbo.Orders WHERE OrderID = 42;                                    
 SET STATISTICS IO OFF;
 GO
 
+-- 5a. Номер секции для значения (раздел 4.0): 01.02 при RANGE RIGHT — начало февральской секции 3
+SELECT $PARTITION.pfOrders('2024-01-31T23:59:59') AS jan,   -- 2
+       $PARTITION.pfOrders('2024-02-01')          AS feb,   -- 3
+       $PARTITION.pfOrders('2023-12-31')          AS before_jan;  -- 1
+GO
+
+-- 5b. Функция над колонкой ломает отсечение (раздел 4.6): сравните Actual Partition Count
+SELECT COUNT(*) FROM dbo.Orders WHERE MONTH(OrderDate) = 2;                               -- все секции
+SELECT COUNT(*) FROM dbo.Orders WHERE OrderDate >= '2024-02-01' AND OrderDate < '2024-03-01';  -- одна
+GO
+
 -- 6. Stage-таблица для выгрузки: та же структура, те же индексы, та же файловая группа
 CREATE TABLE dbo.Orders_Stage (
     OrderID    bigint        NOT NULL,
