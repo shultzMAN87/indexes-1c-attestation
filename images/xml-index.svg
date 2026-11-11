@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="478" viewBox="0 0 880 478" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+<marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+<marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+</defs>
+<rect x="0.5" y="0.5" width="879" height="477" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="32" font-size="17" font-weight="700" fill="#111827">XML-индексы: документ → таблица узлов → B-tree</text>
+<text x="40" y="72" font-size="12" fill="#6b7280" font-weight="600">Колонка xml (строка с PK = 5)</text>
+<rect x="40" y="82" width="240" height="112" rx="6" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="52" y="104" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">&lt;order id="5"&gt;</text>
+<text x="66" y="123" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">&lt;customer&gt;Ромашка&lt;/customer&gt;</text>
+<text x="66" y="142" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">&lt;item sku="A1" qty="2"/&gt;</text>
+<text x="66" y="161" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">&lt;item sku="B7" qty="1"/&gt;</text>
+<text x="52" y="180" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">&lt;/order&gt;</text>
+<line x1="280" y1="138" x2="318" y2="138" stroke="#ea580c" stroke-width="2" marker-end="url(#arrO)"/>
+<text x="320" y="72" font-size="12" fill="#6b7280" font-weight="600">Primary XML index — shredding в скрытую таблицу узлов, ключ (PK, ORDPATH)</text>
+<rect x="320" y="82" width="540" height="24" rx="4" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1"/>
+<text x="328" y="99" font-size="11.5" fill="#374151" font-weight="600">PK</text>
+<text x="368" y="99" font-size="11.5" fill="#374151" font-weight="600">ORDPATH</text>
+<text x="448" y="99" font-size="11.5" fill="#374151" font-weight="600">путь</text>
+<text x="698" y="99" font-size="11.5" fill="#374151" font-weight="600">значение</text>
+<rect x="320" y="108" width="540" height="20" rx="3" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+<text x="328" y="123" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="123" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1</text>
+<text x="448" y="123" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order</text>
+<text x="698" y="123" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace"></text>
+<rect x="320" y="130" width="540" height="20" rx="3" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+<text x="328" y="145" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="145" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1.1</text>
+<text x="448" y="145" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order/@id</text>
+<text x="698" y="145" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<rect x="320" y="152" width="540" height="20" rx="3" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+<text x="328" y="167" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="167" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1.3</text>
+<text x="448" y="167" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order/customer</text>
+<text x="698" y="167" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">Ромашка</text>
+<rect x="320" y="174" width="540" height="20" rx="3" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+<text x="328" y="189" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="189" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1.5</text>
+<text x="448" y="189" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order/item</text>
+<text x="698" y="189" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace"></text>
+<rect x="320" y="196" width="540" height="20" rx="3" fill="#fff7ed" stroke="#ea580c" stroke-width="1"/>
+<text x="328" y="211" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="211" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1.5.1</text>
+<text x="448" y="211" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order/item/@sku</text>
+<text x="698" y="211" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">A1</text>
+<rect x="320" y="218" width="540" height="20" rx="3" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+<text x="328" y="233" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="233" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1.5.3</text>
+<text x="448" y="233" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order/item/@qty</text>
+<text x="698" y="233" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">2</text>
+<rect x="320" y="240" width="540" height="20" rx="3" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+<text x="328" y="255" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="255" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1.7</text>
+<text x="448" y="255" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order/item</text>
+<text x="698" y="255" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace"></text>
+<rect x="320" y="262" width="540" height="20" rx="3" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+<text x="328" y="277" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="277" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1.7.1</text>
+<text x="448" y="277" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order/item/@sku</text>
+<text x="698" y="277" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">B7</text>
+<rect x="320" y="284" width="540" height="20" rx="3" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+<text x="328" y="299" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">5</text>
+<text x="368" y="299" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1.7.3</text>
+<text x="448" y="299" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">/order/item/@qty</text>
+<text x="698" y="299" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1</text>
+<text x="40" y="324" font-size="12.5" fill="#374151" font-weight="600">Вторичные XML-индексы — обычные B-tree поверх таблицы узлов:</text>
+<rect x="40" y="336" width="264" height="92" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="52" y="358" font-size="14" fill="#1e3a8a" font-weight="700">PATH</text>
+<text x="140" y="358" font-size="12" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace">(путь, значение)</text>
+<text x="52" y="382" font-size="11" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">exist('/order/item[@sku="A1"]')</text>
+<text x="52" y="406" font-size="12" fill="#4b5563">известен путь</text>
+<rect x="316" y="336" width="264" height="92" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="328" y="358" font-size="14" fill="#1e3a8a" font-weight="700">VALUE</text>
+<text x="416" y="358" font-size="12" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace">(значение, путь)</text>
+<text x="328" y="382" font-size="11" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">exist('//item[@sku="A1"]')</text>
+<text x="328" y="406" font-size="12" fill="#4b5563">известно значение, путь с // или *</text>
+<rect x="592" y="336" width="264" height="92" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="604" y="358" font-size="14" fill="#1e3a8a" font-weight="700">PROPERTY</text>
+<text x="692" y="358" font-size="12" fill="#1e3a8a" font-family="Consolas, 'DejaVu Sans Mono', monospace">(PK, путь, значение)</text>
+<text x="604" y="382" font-size="11" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">value('(/order/customer)[1]', …)</text>
+<text x="604" y="406" font-size="12" fill="#4b5563">значения одной строки по PK</text>
+<text x="40" y="456" font-size="12" fill="#374151">Selective XML index: в таблицу узлов попадают только перечисленные пути, значения — типизированные. В разы меньше primary.</text>
+</svg>

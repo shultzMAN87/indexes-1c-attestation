@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hash и Bw-tree в In-Memory OLTP (MS SQL) — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:14px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li.cur{color:#9a3412;font-weight:700}
+.stat{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;margin:6px 0 10px}
+.stat span{background:#f3f4f6;border-radius:6px;padding:2px 8px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.bk{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.bn{width:74px;flex:none;border:1px solid #d1d5db;border-radius:5px;background:#f9fafb;font-size:12px;padding:3px 6px;font-family:Consolas,monospace}
+.bn.cur{border:2px solid #ea580c;background:#fff7ed;color:#9a3412;font-weight:700}
+.bn.empty{color:#9ca3af}
+.rw{border:1px solid #93c5fd;border-radius:5px;background:#eff6ff;font-family:Consolas,monospace;font-size:12px;padding:2px 8px;position:relative}
+.rw.cmp{border:2px solid #ea580c;background:#fff7ed}
+.rw.hit{border:2px solid #16a34a;background:#dcfce7;color:#166534;font-weight:700}
+.rw.miss{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+.rw.new{background:#dbeafe;border:2px dashed #2563eb}
+.ar{color:#9ca3af;font-size:12px}
+.mt{border-collapse:collapse;font-size:12px;margin-bottom:10px}
+.mt td,.mt th{border:1px solid #e5e7eb;padding:3px 8px;font-family:Consolas,monospace}
+.mt th{background:#f3f4f6;font-family:inherit;color:#6b7280;font-weight:600}
+.mt tr.cur td{background:#fff7ed;border-color:#ea580c;color:#9a3412;font-weight:700}
+.page{border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;background:#fff;font-size:12px;margin-bottom:8px}
+.page.cur{border:2px solid #ea580c;box-shadow:0 0 0 3px #fed7aa}
+.page .hd{font-size:11px;color:#6b7280;margin-bottom:4px}
+.keys{display:flex;gap:4px;flex-wrap:wrap}
+.k{border:1px solid #d1d5db;border-radius:4px;padding:1px 6px;font-family:Consolas,monospace;font-size:12px;background:#f9fafb}
+.k.hit{background:#dcfce7;border-color:#16a34a;color:#166534;font-weight:700}
+.k.cmp{background:#fff7ed;border-color:#ea580c}
+.k.del{text-decoration:line-through;color:#9ca3af}
+.chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.delta{border:2px solid #ea580c;background:#fff7ed;border-radius:6px;padding:2px 8px;font-family:Consolas,monospace;font-size:12px;color:#9a3412}
+.delta.cur{box-shadow:0 0 0 3px #fed7aa}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>In-Memory OLTP: hash-индекс и Bw-tree на одной таблице</h1>
+<p class="sub">Memory-optimized таблица <code>dbo.Session(SessionId int, …)</code>: по <code>SessionId</code> есть hash-индекс и некластерный индекс (Bw-tree). Оба индекса не хранят копий данных — они «сшивают» одни и те же строки в памяти. Выберите операцию и идите по шагам кнопкой «Дальше» или стрелками ← →. К разделу 2.5 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Поиск:</span>
+  <button onclick="run('h_eq')">hash: <code>= 23</code></button>
+  <button onclick="run('b_eq')">Bw-tree: <code>= 42</code></button>
+  <button onclick="run('h_rng')">hash: <code>BETWEEN 20 AND 45</code></button>
+  <button onclick="run('b_rng')">Bw-tree: <code>BETWEEN 20 AND 45</code></button>
+  <button onclick="run('b_desc')">Bw-tree: <code>ORDER BY … DESC</code></button>
+</div>
+<div class="ctrl">
+  <span class="lbl">Изменения:</span>
+  <button onclick="run('ins')">INSERT 33</button>
+  <button onclick="run('del')">DELETE 23</button>
+  <button onclick="run('cons')">Консолидация страницы</button>
+  <span class="lbl" style="margin-left:10px">BUCKET_COUNT:</span>
+  <button id="b-4" onclick="setBuckets(4)">4</button><button id="b-8" onclick="setBuckets(8)">8</button><button id="b-16" onclick="setBuckets(16)">16</button>
+  <button onclick="resetAll()">Сбросить</button>
+</div>
+
+<div class="sql" id="sql"></div>
+<div class="stat" id="stat"></div>
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<div class="grid">
+  <div>
+    <h2>Hash-индекс: массив бакетов → цепочки строк</h2>
+    <div id="hash"></div>
+    <div class="stat" id="hstat"></div>
+  </div>
+  <div>
+    <h2>Bw-tree: таблица маппинга → страницы и delta-записи</h2>
+    <div id="bw"></div>
+  </div>
+</div>
+<div class="leg">
+  <span><i style="background:#fff7ed;border-color:#ea580c"></i>читается / сравнивается</span>
+  <span><i style="background:#dcfce7;border-color:#16a34a"></i>найдено</span>
+  <span><i style="background:#fee2e2"></i>не подошло</span>
+  <span><i style="background:#dbeafe;border:2px dashed #2563eb"></i>новая строка</span>
+</div>
+<p class="note">Масштаб: в жизни <code>BUCKET_COUNT</code> — сотни тысяч и миллионы (округляется вверх до степени двойки), бакет — 8-байтовый указатель. Ориентир — в 1–2 раза больше числа уникальных ключей. Хеш-функция здесь условная, но, как и настоящая, разбрасывает соседние ключи по разным бакетам. В настоящем Bw-tree страница консолидируется, когда цепочка delta-записей становится длинной (порядка 16), здесь — по кнопке.</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const $ = id => document.getElementById(id);
+let keys, B = 8, pages, deltas, steps = [], si = 0, sqlText = '';
+const SEP = [20, 42];                  // корень: <20 → PID 2, <42 → PID 3, иначе PID 4
+const LEAF = [2, 3, 4];
+function hb(k){ const h = Math.imul(k, 2654435761) >>> 0; return h >>> (32 - Math.log2(B)); }
+function resetAll(){
+  keys = [5, 9, 12, 17, 20, 23, 31, 38, 42, 45, 51, 60];
+  pages = {2: [5, 9, 12, 17], 3: [20, 23, 31, 38], 4: [42, 45, 51, 60]};
+  deltas = {2: [], 3: [], 4: []};
+  steps = [{title: 'Исходное состояние', text: 'Выберите операцию. Слева строки сцеплены по бакетам hash-индекса, справа — те же ключи в Bw-tree. Попробуйте <code>BUCKET_COUNT = 4</code>: цепочки станут длинными.', hl: {}}];
+  sqlText = 'CREATE TABLE dbo.Session (SessionId int NOT NULL PRIMARY KEY NONCLUSTERED HASH WITH (BUCKET_COUNT = ' + B + '), …, INDEX IX_Bw NONCLUSTERED (SessionId)) WITH (MEMORY_OPTIMIZED = ON)';
+  si = 0; draw();
+}
+function setBuckets(n){ B = n; document.querySelectorAll('[id^=b-]').forEach(b => b.classList.toggle('sel', b.id === 'b-' + n)); resetAll(); }
+function chain(b){ return keys.filter(k => hb(k) === b).sort((x, y) => keys.indexOf(y) - keys.indexOf(x)); }
+function leafOf(k){ return k < SEP[0] ? 2 : k < SEP[1] ? 3 : 4; }
+function visible(pid){ let s = new Set(pages[pid]); for (const d of [...deltas[pid]].reverse()) d.op === 'ins' ? s.add(d.k) : s.delete(d.k); return [...s].sort((a, b) => a - b); }
+
+function run(op){
+  const S = []; const add = (title, text, hl) => S.push({title, text, hl: hl || {}});
+  if (op === 'h_eq'){
+    const Q = 23;
+    sqlText = `SELECT * FROM dbo.Session WITH (INDEX(PK_Session)) WHERE SessionId = ${Q};`;
+    const b = hb(Q);
+    add('Хеш от ключа', `HASH(${Q}) → бакет <b>${b}</b>. Номер бакета <b>вычисляется</b>, а не ищется: ни корня, ни спуска по дереву.`, {bucket: b});
+    const ch = chain(b); let n = 0, found = false;
+    for (const k of ch){
+      n++;
+      if (k === Q){ found = true; add(`Цепочка: строка ${n}`, `Ключ ${Q} совпал — строка найдена. Сравнений: <b>${n}</b>. Сравниваются сами ключи: в один бакет попадают и разные ключи.`, {bucket: b, hit: [Q], miss: ch.slice(0, n - 1)}); break; }
+      add(`Цепочка: строка ${n}`, `Ключ ${k} ≠ ${Q} — в этом бакете лежит и другой ключ, идём дальше по указателю, который хранится в самой строке.`, {bucket: b, cmp: [k], miss: ch.slice(0, n - 1)});
+    }
+    if (!found) add('Не найдено', `Цепочка закончилась — строки с ключом ${Q} нет (её удалили).`, {bucket: b, miss: ch});
+    add('Итог', `Поиск = вычислить бакет + пройти цепочку (в бакете ${b} строк: ${ch.length}). Чем меньше бакетов на число ключей, тем длиннее цепочки — переключите BUCKET_COUNT на 4 и повторите.`, {bucket: b, hit: found ? [Q] : []});
+  }
+  if (op === 'h_rng'){
+    sqlText = 'SELECT * FROM dbo.Session WHERE SessionId BETWEEN 20 AND 45;  -- hash не поможет';
+    add('Можно ли взять бакет?', 'Для диапазона хеш вычислить не от чего: 20, 21, …, 45 — это 26 разных значений, и соседние ключи лежат в разных бакетах. Индекс по диапазону не ищет — остаётся полный обход.', {});
+    for (let b = 0; b < B; b++){
+      const ch = chain(b);
+      add(`Обход: бакет ${b}`, ch.length ? `Читаем всю цепочку: ${ch.join(', ')}. Подходят: ${ch.filter(k => k >= 20 && k <= 45).join(', ') || 'нет'}.` : 'Пустой бакет — тоже надо проверить.', {bucket: b, hit: ch.filter(k => k >= 20 && k <= 45), miss: ch.filter(k => k < 20 || k > 45)});
+    }
+    add('Итог', `Прочитаны все ${B} бакетов и все ${keys.length} строк. Результат ещё и не упорядочен. Для диапазонов и сортировки нужен Bw-tree (некластерный индекс).`, {hit: keys.filter(k => k >= 20 && k <= 45)});
+  }
+  if (op === 'b_eq' || op === 'b_rng'){
+    const rng = op === 'b_rng', lo = rng ? 20 : 42, hi = rng ? 45 : 42;
+    sqlText = rng ? 'SELECT * FROM dbo.Session WITH (INDEX(IX_Bw)) WHERE SessionId BETWEEN 20 AND 45 ORDER BY SessionId;' : 'SELECT * FROM dbo.Session WITH (INDEX(IX_Bw)) WHERE SessionId = 42;';
+    add('Корень через таблицу маппинга', 'Таблица маппинга: PID 1 → адрес корневой страницы. Все ссылки между страницами — логические номера PID, а не адреса в памяти.', {pid: 1});
+    const p = leafOf(lo);
+    add('Корень: выбор ветви', `Разделители корня: &lt;20 → PID 2, &lt;42 → PID 3, иначе PID 4. Для ${lo} — <b>PID ${p}</b>.`, {pid: 1, root: true});
+    let pid = p;
+    while (pid <= 4){
+      const ds = deltas[pid];
+      add(`PID ${pid} → страница`, `Таблица маппинга: PID ${pid} → ${ds.length ? 'голова цепочки delta-записей' : 'адрес страницы'}.${ds.length ? ' Сначала читаем delta-записи: они новее страницы.' : ''}`, {pid, page: pid});
+      const vis = visible(pid), got = vis.filter(k => k >= lo && k <= hi);
+      add(`Лист PID ${pid}`, `Ключи страницы с учётом delta: ${vis.join(', ')}. Подходят: <b>${got.join(', ') || 'нет'}</b>.${rng && vis[vis.length - 1] <= hi && pid < 4 ? ' Последний ключ ≤ 45 — переходим к соседнему листу по его PID.' : ''}`, {pid, page: pid, hitk: got, cmpk: vis});
+      if (!rng || vis[vis.length - 1] > hi || pid === 4) break;
+      pid++;
+    }
+    add('Итог', rng ? 'Диапазон прочитан по соседним листьям, ключи уже упорядочены — Sort в плане не нужен.' : 'Спуск: корень → лист. Блокировок и latch на страницы не берётся: страница никогда не меняется на месте.', {});
+  }
+  if (op === 'b_desc'){
+    sqlText = 'SELECT TOP (3) * FROM dbo.Session ORDER BY SessionId DESC;';
+    add('Направление индекса', 'Индекс IX_Bw создан по возрастанию. Листья связаны ссылками только «вправо» — Bw-tree <b>однонаправленный</b>.', {page: 4});
+    add('Что делает оптимизатор', 'Обойти индекс в обратную сторону нельзя. В плане будет Index Scan по возрастанию + <b>Sort</b> (или Top N Sort). В дисковом B-дереве MS SQL листья связаны в обе стороны, и Sort там не нужен.', {page: 2});
+    add('Как исправить', 'Если нужны «последние N», создают индекс с нужным направлением: <code>INDEX IX_Bw_Desc NONCLUSTERED (SessionId DESC)</code>.', {});
+  }
+  if (op === 'ins'){
+    if (keys.includes(33)){ add('Уже вставлено', 'Ключ 33 уже есть. Нажмите «Сбросить».', {}); }
+    else {
+      sqlText = 'INSERT INTO dbo.Session (SessionId, …) VALUES (33, …);';
+      keys.push(33);
+      add('Новая строка в памяти', 'Строка создаётся один раз. Оба индекса будут указывать на неё же — копий ключа индексы не хранят.', {newk: 33});
+      const b = hb(33);
+      add('Hash: вставка в бакет', `HASH(33) → бакет ${b}. Строка встаёт в <b>начало</b> цепочки: её указатель «следующая» — на бывшую голову, а бакет атомарно (CAS) переключается на новую строку.`, {bucket: b, newk: 33});
+      deltas[3].push({op: 'ins', k: 33});
+      add('Bw-tree: delta-запись', 'Ключ 33 попадает в лист PID 3. Страница <b>не меняется</b>: создаётся запись «Δ insert 33», указывающая на текущую страницу.', {pid: 3, delta: 3, newk: 33});
+      add('Bw-tree: CAS в таблице маппинга', 'PID 3 атомарно переключается на delta-запись. Если в этот момент другой поток успел изменить PID 3 — CAS не пройдёт, и поток повторит попытку с новой головой. Блокировок нет.', {pid: 3, delta: 3});
+      add('Итог', 'Читатель листа PID 3 теперь видит «Δ insert 33», потом страницу. Delta-записи копятся; нажмите «Консолидация страницы».', {pid: 3, delta: 3});
+    }
+  }
+  if (op === 'del'){
+    if (!keys.includes(23)){ add('Уже удалено', 'Ключа 23 нет. Нажмите «Сбросить».', {}); }
+    else {
+      sqlText = 'DELETE FROM dbo.Session WHERE SessionId = 23;';
+      add('Строка помечается удалённой', 'In-Memory OLTP работает через версии строк: у строки проставляется время окончания жизни. Физически из цепочек и страниц её позже уберёт сборщик мусора, когда старые транзакции её уже не видят.', {});
+      keys = keys.filter(k => k !== 23); deltas[3].push({op: 'del', k: 23});
+      add('Bw-tree: Δ delete', 'В лист PID 3 добавляется запись «Δ delete 23» и CAS переключает PID 3 на неё. Страница с ключом 23 по-прежнему не тронута.', {pid: 3, delta: 3});
+      add('Hash: цепочка', `Строка ${23} уходит из цепочки бакета ${hb(23)} (сборщик мусора меняет указатель предыдущей строки). Число бакетов не меняется.`, {bucket: hb(23)});
+    }
+  }
+  if (op === 'cons'){
+    const pid = [2, 3, 4].find(p => deltas[p].length);
+    if (!pid){ add('Нечего консолидировать', 'Delta-записей нет. Сделайте INSERT 33 или DELETE 23.', {}); }
+    else {
+      add('Длинная цепочка', `У PID ${pid} ${deltas[pid].length} delta-запис${deltas[pid].length === 1 ? 'ь' : 'и'}: каждое чтение проходит их все. Пора собрать новую страницу.`, {pid, page: pid, delta: pid});
+      const np = visible(pid);
+      pages[pid] = np; deltas[pid] = [];
+      add('Новая страница + CAS', `Строится новая страница с ключами ${np.join(', ')}; CAS переключает PID ${pid} на неё. Старые delta-записи и страница уйдут сборщику мусора, когда их никто не читает.`, {pid, page: pid});
+    }
+  }
+  steps = S; si = 0; draw();
+}
+
+function go(i){ if (i < 0 || i >= steps.length) return; si = i; draw(); }
+function draw(){
+  const st = steps[si], hl = st.hl || {};
+  $('sql').textContent = sqlText;
+  $('cap').innerHTML = `<b class="t">${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((x, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${x.title}</li>`).join('');
+  // hash
+  let h = '';
+  const lens = [];
+  for (let b = 0; b < B; b++){
+    const ch = chain(b); lens.push(ch.length);
+    h += `<div class="bk"><span class="bn ${hl.bucket === b ? 'cur' : ''} ${ch.length ? '' : 'empty'}">бакет ${b}</span>`;
+    h += ch.length ? ch.map(k => `<span class="ar">→</span><span class="rw ${cls(k, hl)}">${k}</span>`).join('') : '<span class="ar">пусто</span>';
+    h += '</div>';
+  }
+  $('hash').innerHTML = h;
+  const empty = lens.filter(x => !x).length, used = lens.filter(x => x);
+  $('hstat').innerHTML = `<span>бакетов: <b>${B}</b></span><span>пустых: <b>${empty}</b> (${Math.round(empty / B * 100)}%)</span><span>средняя цепочка: <b>${(used.reduce((a, c) => a + c, 0) / (used.length || 1)).toFixed(1)}</b></span><span>макс. цепочка: <b>${Math.max(...lens)}</b></span>`;
+  // bw
+  let w = '<table class="mt"><tr><th>PID</th><th>указывает на</th></tr>';
+  w += `<tr class="${hl.pid === 1 ? 'cur' : ''}"><td>1</td><td>корень</td></tr>`;
+  for (const p of LEAF) w += `<tr class="${hl.pid === p ? 'cur' : ''}"><td>${p}</td><td>${deltas[p].length ? 'Δ-цепочка → лист' : 'лист'}</td></tr>`;
+  w += '</table>';
+  w += `<div class="page ${hl.root ? 'cur' : ''}"><div class="hd">PID 1 — корень</div><span class="mono">&lt;20 → PID 2 &nbsp;|&nbsp; &lt;42 → PID 3 &nbsp;|&nbsp; иначе → PID 4</span></div>`;
+  for (const p of LEAF){
+    w += '<div class="chain">';
+    for (const d of [...deltas[p]].reverse()) w += `<span class="delta ${hl.delta === p ? 'cur' : ''}">Δ ${d.op === 'ins' ? 'insert' : 'delete'} ${d.k}</span><span class="ar">→</span>`;
+    w += `<div class="page ${hl.page === p ? 'cur' : ''}" style="margin:0"><div class="hd">PID ${p} — лист${p < 4 ? ' → сосед PID ' + (p + 1) : ''}</div><div class="keys">`;
+    const vis = visible(p);
+    w += pages[p].map(k => `<span class="k ${!vis.includes(k) ? 'del' : (hl.hitk || []).includes(k) ? 'hit' : (hl.cmpk || []).includes(k) ? 'cmp' : ''}">${k}</span>`).join('');
+    w += '</div></div></div>';
+  }
+  $('bw').innerHTML = w;
+  $('stat').innerHTML = `<span>ключей в таблице: <b>${keys.length}</b></span><span>delta-записей: <b>${deltas[2].length + deltas[3].length + deltas[4].length}</b></span>`;
+}
+function cls(k, hl){
+  if ((hl.hit || []).includes(k)) return 'hit';
+  if (hl.newk === k) return 'new';
+  if ((hl.cmp || []).includes(k)) return 'cmp';
+  if ((hl.miss || []).includes(k)) return 'miss';
+  return '';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+setBuckets(8);
+</script>
+</body>
+</html>

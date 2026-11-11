@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пространственный индекс MS SQL — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:14px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li.cur{color:#9a3412;font-weight:700}
+.stat{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;margin:6px 0 10px}
+.stat span{background:#f3f4f6;border-radius:6px;padding:2px 8px}
+.grid{display:grid;grid-template-columns:520px minmax(0,1fr);gap:20px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{padding:2px 6px;border-bottom:1px solid #f3f4f6;text-align:left}
+th{color:#6b7280;font-weight:600;font-size:11px}
+td.mono{font-family:Consolas,monospace}
+tr.cand td{background:#fef3c7}
+tr.acc td{background:#dcfce7;color:#166534;font-weight:700}
+tr.rej td{background:#fee2e2;color:#991b1b}
+tr.new td{background:#ffedd5}
+.tbl{max-height:520px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>Пространственный индекс: сетка ячеек + B-tree</h1>
+<p class="sub">Таблица <code>Объекты(Id, Geo geometry)</code>: район (полигон) и магазины (точки). Индекс раскладывает каждый объект по ячейкам двухуровневой сетки (в жизни уровней 4 или 8) и хранит пары «ячейка → Id» в обычном B-tree. Выберите операцию и идите по шагам кнопкой «Дальше» или стрелками ← →. К разделу 2.5 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Построение:</span>
+  <button onclick="tess()">Тесселяция района</button>
+  <span class="lbl" style="margin-left:6px">CELLS_PER_OBJECT:</span>
+  <button id="c-4" onclick="setLimit(4)">4</button><button id="c-8" onclick="setLimit(8)">8</button><button id="c-16" onclick="setLimit(16)">16</button><button id="c-32" onclick="setLimit(32)">32</button>
+</div>
+<div class="ctrl">
+  <span class="lbl">Запрос <code>Geo.STIntersects(@окно) = 1</code>:</span>
+  <button onclick="query(0)">окно 1 — центр района</button>
+  <button onclick="query(1)">окно 2 — на краю района</button>
+  <button onclick="query(2)">окно 3 — вне района</button>
+</div>
+
+<div class="sql" id="sql"></div>
+<div class="stat" id="stat"></div>
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<div class="grid">
+  <div><h2>Плоскость и сетка (уровень 1 — 4×4, уровень 2 — ещё 4×4 в каждой ячейке)</h2><div id="map"></div></div>
+  <div><h2>Внутренняя таблица индекса: B-tree по (ячейка, Id)</h2><div class="tbl" id="tbl"></div></div>
+</div>
+<div class="leg">
+  <span><i style="background:#fdba74"></i>ячейка покрыта объектом целиком</span>
+  <span><i style="background:#ffedd5"></i>ячейка задета частично</span>
+  <span><i style="border:2px dashed #2563eb"></i>окно запроса</span>
+  <span><i style="background:#fef3c7"></i>кандидат (первичный фильтр)</span>
+  <span><i style="background:#dcfce7"></i>подходит</span>
+  <span><i style="background:#fee2e2"></i>отсеян точной проверкой</span>
+</div>
+<p class="note">Правила тесселяции: ячейка, целиком покрытая объектом, дальше не делится (covering rule); объект занимает не больше <code>CELLS_PER_OBJECT</code> ячеек — если деление превысит лимит, остаётся крупная ячейка (cells-per-object rule); записываются только самые глубокие ячейки (deepest cell rule). Ручная сетка (<code>GEOMETRY_GRID</code>) — 4 уровня плотностью <code>LOW</code> 4×4, <code>MEDIUM</code> 8×8 или <code>HIGH</code> 16×16; автоматическая (<code>GEOMETRY_AUTO_GRID</code>, по умолчанию) — 8 уровней. Точка всегда попадает в одну ячейку самого глубокого уровня.</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const S1 = 120, S2 = 30, N = 480, L = 'ABCD';
+const POLY = [[150, 70], [330, 95], [355, 250], [270, 330], [120, 300], [95, 170]];
+const SHOPS = [[200, 200], [300, 150], [140, 260], [250, 280], [60, 60], [400, 90], [420, 400], [60, 420], [330, 350], [180, 120], [440, 250], [100, 340]];
+const WINDOWS = [[170, 150, 110, 100], [290, 225, 140, 115], [370, 380, 100, 80]];
+let limit = 8, objs, steps = [], si = 0, sqlText = '';
+function inPoly(x, y, P){ let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++){ const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+function segX(a, b, c, d){ const o = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])); return o(a, b, c) !== o(a, b, d) && o(c, d, a) !== o(c, d, b); }
+function rectPts(x, y, w, h){ return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]; }
+function polyRect(P, x, y, w, h){
+  const R = rectPts(x, y, w, h);
+  if (P.some(([px, py]) => px > x && px < x + w && py > y && py < y + h)) return 'touch';
+  const ins = R.filter(([a, b]) => inPoly(a, b, P)).length;
+  let cross = false;
+  for (let i = 0; i < P.length && !cross; i++) for (let j = 0; j < 4; j++) if (segX(P[i], P[(i + 1) % P.length], R[j], R[(j + 1) % 4])){ cross = true; break; }
+  if (ins === 4 && !cross) return 'full';
+  return ins || cross ? 'touch' : 'none';
+}
+const name1 = (c, r) => L[c] + (r + 1);
+const name2 = (c, r, sc, sr) => name1(c, r) + '.' + (sr * 4 + sc + 1);
+function cellOf(x, y){ const c = Math.floor(x / S1), r = Math.floor(y / S1), sc = Math.floor((x - c * S1) / S2), sr = Math.floor((y - r * S1) / S2); return {lvl: 2, c, r, sc, sr, name: name2(c, r, sc, sr), x: c * S1 + sc * S2, y: r * S1 + sr * S2, w: S2, attr: 'touch'}; }
+function tessellate(log){
+  const cells = [];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++){ const a = polyRect(POLY, c * S1, r * S1, S1, S1); if (a !== 'none') cells.push({lvl: 1, c, r, name: name1(c, r), x: c * S1, y: r * S1, w: S1, attr: a}); }
+  log && log('Уровень 1', `Район задевает <b>${cells.length}</b> ячеек верхней сетки 4×4, из них целиком покрыто ${cells.filter(x => x.attr === 'full').length}. Это первая версия набора ячеек.`, {cells: cells.slice()});
+  const full = cells.filter(x => x.attr === 'full');
+  if (full.length) log && log('Covering rule', `Ячейки ${full.map(x => x.name).join(', ')} покрыты районом целиком — их не делят дальше: «покрыта» и так точная информация.`, {cells: cells.slice(), mark: full.map(x => x.name)});
+  if (cells.length >= limit){ log && log('Лимит уже достигнут', `Ячеек уровня 1 уже ${cells.length} ≥ CELLS_PER_OBJECT = ${limit}: на нижние уровни не спускаемся. Индекс для района будет грубым.`, {cells: cells.slice()}); return cells; }
+  let res = cells.slice();
+  for (const p of cells.filter(x => x.attr === 'touch')){
+    const kids = [];
+    for (let sr = 0; sr < 4; sr++) for (let sc = 0; sc < 4; sc++){ const x = p.x + sc * S2, y = p.y + sr * S2, a = polyRect(POLY, x, y, S2, S2); if (a !== 'none') kids.push({lvl: 2, c: p.c, r: p.r, sc, sr, name: name2(p.c, p.r, sc, sr), x, y, w: S2, attr: a}); }
+    const after = res.length - 1 + kids.length;
+    if (after <= limit){ res = res.filter(x => x !== p).concat(kids); log && log(`Делим ${p.name}`, `${p.name} задета частично → делим на 16 подъячеек; район задевает ${kids.length} из них. Всего ячеек станет ${after} ≤ ${limit} — делим. Сама ${p.name} больше не записывается (deepest cell rule).`, {cells: res.slice(), mark: kids.map(x => x.name)}); }
+    else log && log(`${p.name} не делим`, `Деление ${p.name} даст ${kids.length} подъячеек, всего ${after} > CELLS_PER_OBJECT = ${limit}. Ячейка остаётся крупной.`, {cells: res.slice(), mark: [p.name]});
+  }
+  return res;
+}
+function rebuild(){
+  objs = [{id: 1, kind: 'poly', label: 'Район', cells: tessellate(null)}];
+  SHOPS.forEach((p, i) => objs.push({id: 101 + i, kind: 'pt', p, label: 'Магазин ' + (101 + i), cells: [cellOf(...p)]}));
+}
+function rows(){ const R = []; for (const o of objs) for (const c of o.cells) R.push({cell: c.name, attr: c.attr, id: o.id, o, c}); return R.sort((a, b) => a.cell < b.cell ? -1 : a.cell > b.cell ? 1 : a.id - b.id); }
+function setLimit(n){ limit = n; document.querySelectorAll('[id^=c-]').forEach(b => b.classList.toggle('sel', b.id === 'c-' + n)); rebuild();
+  sqlText = `CREATE SPATIAL INDEX SIX_Geo ON dbo.Объекты (Geo) USING GEOMETRY_GRID WITH (BOUNDING_BOX = (0, 0, 480, 480), GRIDS = (LOW, LOW), CELLS_PER_OBJECT = ${limit});`;
+  steps = [{title: 'Индекс построен', text: `Район записан ${objs[0].cells.length} ячейками (лимит ${limit}), каждый магазин — одной ячейкой нижнего уровня. Нажмите «Тесселяция района», чтобы увидеть, как получились ячейки, или выберите окно запроса.`, hl: {}}]; si = 0; draw(); }
+function tess(){
+  const S = []; tessellate((t, x, h) => S.push({title: t, text: x, hl: h}));
+  S.push({title: 'Записи в индекс', text: `Итог: ${objs[0].cells.length} ячеек района → ${objs[0].cells.length} строк B-tree (ячейка, признак, Id = 1). Уменьшите CELLS_PER_OBJECT до 4 — ячеек станет меньше, но они крупнее и первичный фильтр будет грубее.`, hl: {cells: objs[0].cells, rowsOf: 1}});
+  sqlText = 'Тесселяция объекта Id = 1 (район) при CREATE SPATIAL INDEX / INSERT';
+  steps = S; si = 0; draw();
+}
+function cellIn(c, x, y, w, h){ return c.x >= x && c.y >= y && c.x + c.w <= x + w && c.y + c.w <= y + h; }
+function cellHit(c, x, y, w, h){ return c.x < x + w && c.x + c.w > x && c.y < y + h && c.y + c.w > y; }
+function query(k){
+  const [x, y, w, h] = WINDOWS[k], S = [], add = (t, d, hl) => S.push({title: t, text: d, hl: Object.assign({win: k}, hl || {})});
+  sqlText = `DECLARE @окно geometry = geometry::STGeomFromText('POLYGON((${x} ${y}, ${x + w} ${y}, ${x + w} ${y + h}, ${x} ${y + h}, ${x} ${y}))', 0);\nSELECT Id FROM dbo.Объекты WHERE Geo.STIntersects(@окно) = 1;`;
+  const qc = [];
+  for (let gy = 0; gy < N; gy += S2) for (let gx = 0; gx < N; gx += S2){ const c = {x: gx, y: gy, w: S2}; if (cellHit(c, x, y, w, h)) qc.push(c); }
+  add('Окно → ячейки', `Окно запроса тоже раскладывается по сетке: оно задевает ${qc.length} ячеек нижнего уровня. Дальше индекс ищет в B-tree строки с этими ячейками (и с охватывающими их ячейками уровня 1).`, {qcells: qc});
+  const R = rows(), cand = R.filter(r => cellHit(r.c, x, y, w, h));
+  const candIds = [...new Set(cand.map(r => r.id))];
+  add('Первичный фильтр', `Поиск по B-tree: подходят ${cand.length} строк индекса → кандидаты: ${candIds.map(i => objs.find(o => o.id === i).label).join(', ') || 'нет'}. Остальные ${objs.length - candIds.length} объектов отброшены, даже не читая их геометрию.`, {qcells: qc, cand: candIds, rcand: cand});
+  const acc = [], chk = [];
+  for (const id of candIds){
+    const rs = cand.filter(r => r.id === id);
+    if (rs.some(r => r.attr === 'full' || cellIn(r.c, x, y, w, h))) acc.push(id); else chk.push(id);
+  }
+  add('Внутренний фильтр', acc.length ? `Без точной проверки приняты: ${acc.map(i => objs.find(o => o.id === i).label).join(', ')}. Либо ячейка объекта целиком лежит внутри окна, либо объект целиком покрывает ячейку, которую задевает окно, — пересечение гарантировано.` : 'Ни одна ячейка-кандидат не даёт гарантированного ответа — всех кандидатов придётся проверять точно.', {qcells: qc, cand: chk, acc, rcand: cand});
+  const ok = [], bad = [];
+  for (const id of chk){ const o = objs.find(q => q.id === id); const hit = o.kind === 'pt' ? (o.p[0] >= x && o.p[0] <= x + w && o.p[1] >= y && o.p[1] <= y + h) : polyRect(POLY, x, y, w, h) !== 'none'; (hit ? ok : bad).push(id); }
+  add('Вторичный фильтр', chk.length ? `Точная проверка <code>STIntersects</code> по настоящей геометрии для кандидатов (${chk.length}): подходят — ${ok.map(i => objs.find(o => o.id === i).label).join(', ') || 'никто'}.${bad.length ? ` Отсеяны — ${bad.map(i => objs.find(o => o.id === i).label).join(', ')}: их ячейку окно задевает, а сам объект в окно не попадает. Это «запас» первичного фильтра.` : ''}` : 'Проверять нечего.', {qcells: qc, acc: acc.concat(ok), rej: bad, rcand: cand});
+  add('Итог', `Ответ: ${acc.concat(ok).map(i => objs.find(o => o.id === i).label).join(', ') || 'пусто'}. Точная (дорогая) проверка выполнена для ${chk.length} объектов из ${objs.length}. В плане: <code>Clustered Index Seek (Spatial)</code> по внутренней таблице, затем <code>Filter</code> со <code>STIntersects</code>.`, {acc: acc.concat(ok), rej: bad});
+  steps = S; si = 0; draw();
+}
+function go(i){ if (i < 0 || i >= steps.length) return; si = i; draw(); }
+function draw(){
+  const st = steps[si], hl = st.hl || {};
+  $('sql').textContent = sqlText;
+  $('cap').innerHTML = `<b class="t">${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((x, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${x.title}</li>`).join('');
+  const cells = hl.cells || objs[0].cells;
+  let s = `<svg width="${N + 40}" height="${N + 40}" viewBox="-30 -24 ${N + 40} ${N + 40}" font-family="Inter,Segoe UI,Arial" style="max-width:100%">`;
+  s += `<rect x="0" y="0" width="${N}" height="${N}" fill="#fff" stroke="#9ca3af"/>`;
+  for (const c of cells){ const m = (hl.mark || []).includes(c.name); s += `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.w}" fill="${c.attr === 'full' ? '#fdba74' : '#ffedd5'}" stroke="${m ? '#ea580c' : '#fb923c'}" stroke-width="${m ? 2.5 : 0.8}"/>`; }
+  for (const c of (hl.qcells || [])) s += `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.w}" fill="#2563eb" fill-opacity="0.12"/>`;
+  for (let i = 0; i <= 16; i++){ const v = i * S2, major = i % 4 === 0; s += `<line x1="${v}" y1="0" x2="${v}" y2="${N}" stroke="${major ? '#6b7280' : '#e5e7eb'}" stroke-width="${major ? 1.4 : 0.6}"/><line x1="0" y1="${v}" x2="${N}" y2="${v}" stroke="${major ? '#6b7280' : '#e5e7eb'}" stroke-width="${major ? 1.4 : 0.6}"/>`; }
+  for (let i = 0; i < 4; i++){ s += `<text x="${i * S1 + 60}" y="-8" font-size="12" fill="#6b7280" text-anchor="middle">${L[i]}</text><text x="-14" y="${i * S1 + 64}" font-size="12" fill="#6b7280" text-anchor="middle">${i + 1}</text>`; }
+  const pc = (hl.acc || []).includes(1) ? '#16a34a' : (hl.rej || []).includes(1) ? '#dc2626' : (hl.cand || []).includes(1) ? '#ca8a04' : '#ea580c';
+  s += `<polygon points="${POLY.map(p => p.join(',')).join(' ')}" fill="${pc}" fill-opacity="0.12" stroke="${pc}" stroke-width="2.5"/>`;
+  s += `<text x="230" y="215" font-size="14" font-weight="700" fill="${pc}" text-anchor="middle">Район (Id 1)</text>`;
+  for (const o of objs.filter(o => o.kind === 'pt')){
+    const col = (hl.acc || []).includes(o.id) ? '#16a34a' : (hl.rej || []).includes(o.id) ? '#dc2626' : (hl.cand || []).includes(o.id) ? '#ca8a04' : '#374151';
+    s += `<circle cx="${o.p[0]}" cy="${o.p[1]}" r="6" fill="${col}" stroke="#fff" stroke-width="1.5"/><text x="${o.p[0] + 8}" y="${o.p[1] - 6}" font-size="10" fill="${col}">${o.id}</text>`;
+  }
+  if (hl.win !== undefined){ const [x, y, w, h] = WINDOWS[hl.win]; s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="7 4"/>`; }
+  s += '</svg>';
+  $('map').innerHTML = s;
+  const R = rows();
+  let t = '<table><tr><th>ячейка</th><th>признак</th><th>Id</th><th>объект</th></tr>';
+  for (const r of R){
+    const inC = (hl.rcand || []).includes(r) || (hl.rcand || []).some(q => q.cell === r.cell && q.id === r.id);
+    const cls = hl.rowsOf === r.id ? 'new' : inC ? ((hl.acc || []).includes(r.id) ? 'acc' : (hl.rej || []).includes(r.id) ? 'rej' : 'cand') : '';
+    t += `<tr class="${cls}"><td class="mono">${r.cell}</td><td>${r.attr === 'full' ? 'покрыта' : 'задета'}</td><td class="mono">${r.id}</td><td>${r.o.label}</td></tr>`;
+  }
+  $('tbl').innerHTML = t + '</table>';
+  $('stat').innerHTML = `<span>CELLS_PER_OBJECT: <b>${limit}</b></span><span>ячеек района: <b>${objs[0].cells.length}</b></span><span>строк в индексе: <b>${R.length}</b></span><span>объектов: <b>${objs.length}</b></span>`;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+setLimit(16);
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="452" viewBox="0 0 880 452" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+<marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+<marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+</defs>
+<rect x="0.5" y="0.5" width="879" height="451" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="32" font-size="17" font-weight="700" fill="#111827">Полнотекстовый индекс: слово → документы и позиции</text>
+<text x="40" y="72" font-size="12" fill="#6b7280" font-weight="600">Документы (строки таблицы)</text>
+<rect x="40" y="82" width="230" height="36" rx="6" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="52" y="105" font-size="12.5" fill="#1f2937">1: Индекс ускоряет поиск строк</text>
+<rect x="40" y="128" width="230" height="36" rx="6" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="52" y="151" font-size="12.5" fill="#1f2937">2: Быстрый поиск по индексам</text>
+<rect x="40" y="174" width="230" height="36" rx="6" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="52" y="197" font-size="12.5" fill="#1f2937">3: Индексы на таблице</text>
+<line x1="270" y1="145" x2="300" y2="145" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="302" y="82" width="200" height="36" rx="6" fill="#faf5ff" stroke="#9333ea" stroke-width="1"/>
+<text x="314" y="98" font-size="12.5" fill="#581c87" font-weight="700">Word breaker</text>
+<text x="314" y="112" font-size="11" fill="#6b21a8">текст → слова (язык 1049)</text>
+<rect x="302" y="128" width="200" height="36" rx="6" fill="#faf5ff" stroke="#9333ea" stroke-width="1"/>
+<text x="314" y="144" font-size="12.5" fill="#581c87" font-weight="700">Stemmer</text>
+<text x="314" y="158" font-size="11" fill="#6b21a8">индексам, индексы → индекс</text>
+<rect x="302" y="174" width="200" height="36" rx="6" fill="#faf5ff" stroke="#9333ea" stroke-width="1"/>
+<text x="314" y="190" font-size="12.5" fill="#581c87" font-weight="700">Stoplist</text>
+<text x="314" y="204" font-size="11" fill="#6b21a8">отбросить «по», «на»</text>
+<text x="302" y="238" font-size="11" fill="#6b7280">процесс fdhost.exe</text>
+<line x1="502" y1="145" x2="532" y2="145" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="536" y="72" font-size="12" fill="#6b7280" font-weight="600">Инвертированный индекс: слово → документ:позиция</text>
+<rect x="536" y="82" width="90" height="26" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="581" y="100" font-size="12.5" fill="#1e3a8a" text-anchor="middle" font-weight="700">быстрый</text>
+<line x1="626" y1="95" x2="642" y2="95" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="644" y="82" width="214" height="26" rx="4" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="652" y="100" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">2:1</text>
+<rect x="536" y="114" width="90" height="26" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="581" y="132" font-size="12.5" fill="#1e3a8a" text-anchor="middle" font-weight="700">индекс</text>
+<line x1="626" y1="127" x2="642" y2="127" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="644" y="114" width="214" height="26" rx="4" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="652" y="132" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1:1  2:4  3:1</text>
+<rect x="536" y="146" width="90" height="26" rx="4" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+<text x="581" y="164" font-size="12.5" fill="#9a3412" text-anchor="middle" font-weight="700">поиск</text>
+<line x1="626" y1="159" x2="642" y2="159" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrO)"/>
+<rect x="644" y="146" width="214" height="26" rx="4" fill="#fff7ed" stroke="#ea580c" stroke-width="1"/>
+<text x="652" y="164" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1:3  2:2</text>
+<rect x="536" y="178" width="90" height="26" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="581" y="196" font-size="12.5" fill="#1e3a8a" text-anchor="middle" font-weight="700">строка</text>
+<line x1="626" y1="191" x2="642" y2="191" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="644" y="178" width="214" height="26" rx="4" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="652" y="196" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1:4</text>
+<rect x="536" y="210" width="90" height="26" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="581" y="228" font-size="12.5" fill="#1e3a8a" text-anchor="middle" font-weight="700">таблица</text>
+<line x1="626" y1="223" x2="642" y2="223" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="644" y="210" width="214" height="26" rx="4" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="652" y="228" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">3:3</text>
+<rect x="536" y="242" width="90" height="26" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="581" y="260" font-size="12.5" fill="#1e3a8a" text-anchor="middle" font-weight="700">ускорять</text>
+<line x1="626" y1="255" x2="642" y2="255" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="644" y="242" width="214" height="26" rx="4" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+<text x="652" y="260" font-size="11.5" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">1:2</text>
+<text x="536" y="290" font-size="11" fill="#6b7280">документ = значение KEY INDEX (уникальный int)</text>
+<rect x="24" y="318" width="832" height="116" rx="8" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+<text x="40" y="342" font-size="12" fill="#9a3412" font-weight="700" font-family="Consolas, 'DejaVu Sans Mono', monospace">CONTAINS(Content, N'поиск')</text>
+<text x="440" y="342" font-size="12" fill="#374151">→ документы 1, 2 из индекса, затем соединение с таблицей</text>
+<text x="40" y="367" font-size="12" fill="#9a3412" font-weight="700" font-family="Consolas, 'DejaVu Sans Mono', monospace">CONTAINS(Content, N'FORMSOF(INFLECTIONAL, "индексы")')</text>
+<text x="440" y="367" font-size="12" fill="#374151">→ все словоформы: 1, 2, 3</text>
+<text x="40" y="392" font-size="12" fill="#9a3412" font-weight="700" font-family="Consolas, 'DejaVu Sans Mono', monospace">CONTAINS(Content, N'NEAR((индекс, поиск), 2)')</text>
+<text x="440" y="392" font-size="12" fill="#374151">→ по позициям: в документе 1 слова рядом, в 2 — тоже</text>
+<text x="40" y="417" font-size="12" fill="#991b1b" font-weight="700" font-family="Consolas, 'DejaVu Sans Mono', monospace">Content LIKE N'%поиск%'</text>
+<text x="440" y="417" font-size="12" fill="#374151">→ индекс не используется: чтение каждой строки</text>
+</svg>

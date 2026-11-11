@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="470" viewBox="0 0 880 470" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+<marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+<marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+</defs>
+<rect x="0.5" y="0.5" width="879" height="469" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="32" font-size="17" font-weight="700" fill="#111827">Пространственный индекс: тесселяция сеткой + B-tree</text>
+<text x="24" y="54" font-size="13" fill="#374151">Объект раскладывается по ячейкам сетки; пары «ячейка → строка» лежат в обычном B-tree.</text>
+<rect x="40" y="80" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="112" y="80" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="184" y="80" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="256" y="80" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="40" y="152" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="112" y="152" width="72" height="72" rx="0" fill="#fdba74" stroke="#9ca3af" stroke-width="1"/>
+<rect x="184" y="152" width="72" height="72" rx="0" fill="#fdba74" stroke="#9ca3af" stroke-width="1"/>
+<rect x="256" y="152" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="40" y="224" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="112" y="224" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="184" y="224" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="256" y="224" width="72" height="72" rx="0" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<rect x="40" y="296" width="72" height="72" rx="0" fill="#ffffff" stroke="#9ca3af" stroke-width="1"/>
+<rect x="112" y="296" width="72" height="72" rx="0" fill="#ffffff" stroke="#9ca3af" stroke-width="1"/>
+<rect x="184" y="296" width="72" height="72" rx="0" fill="#ffffff" stroke="#9ca3af" stroke-width="1"/>
+<rect x="256" y="296" width="72" height="72" rx="0" fill="#ffffff" stroke="#9ca3af" stroke-width="1"/>
+<text x="76.0" y="74" font-size="11" fill="#6b7280" text-anchor="middle">A</text>
+<text x="30" y="120.0" font-size="11" fill="#6b7280" text-anchor="middle">1</text>
+<text x="148.0" y="74" font-size="11" fill="#6b7280" text-anchor="middle">B</text>
+<text x="30" y="192.0" font-size="11" fill="#6b7280" text-anchor="middle">2</text>
+<text x="220.0" y="74" font-size="11" fill="#6b7280" text-anchor="middle">C</text>
+<text x="30" y="264.0" font-size="11" fill="#6b7280" text-anchor="middle">3</text>
+<text x="292.0" y="74" font-size="11" fill="#6b7280" text-anchor="middle">D</text>
+<text x="30" y="336.0" font-size="11" fill="#6b7280" text-anchor="middle">4</text>
+<polygon points="100,96 272,106 264,270 106,262" fill="#ea580c" fill-opacity="0.18" stroke="#ea580c" stroke-width="2.5"/>
+<text x="190" y="196" font-size="13" fill="#9a3412" text-anchor="middle" font-weight="700">район</text>
+<rect x="214" y="218" width="120" height="96" rx="0" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="274" y="330" font-size="11.5" fill="#1d4ed8" text-anchor="middle" font-weight="600">область запроса</text>
+<rect x="40" y="392" width="14" height="14" rx="2" fill="#fdba74" stroke="#9ca3af" stroke-width="1"/>
+<text x="60" y="404" font-size="11.5" fill="#374151">ячейка покрыта целиком</text>
+<rect x="210" y="392" width="14" height="14" rx="2" fill="#ffedd5" stroke="#9ca3af" stroke-width="1"/>
+<text x="230" y="404" font-size="11.5" fill="#374151">ячейка задета частично</text>
+<text x="40" y="426" font-size="11.5" fill="#6b7280">Уровень 1 — сетка 4×4; каждая задетая ячейка делится дальше</text>
+<text x="40" y="442" font-size="11.5" fill="#6b7280">(ручная сетка — 4 уровня, автоматическая — 8), пока хватает CELLS_PER_OBJECT.</text>
+<text x="400" y="80" font-size="12.5" fill="#6b7280" font-weight="600">Внутренняя таблица индекса (кластерный B-tree)</text>
+<rect x="400" y="88" width="220" height="26" rx="4" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1"/>
+<text x="410" y="105" font-size="11.5" fill="#374151" font-weight="600">ячейка · признак · PK строки</text>
+<rect x="400" y="118" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="134" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">A1 · задета · id 17</text>
+<rect x="400" y="142" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="158" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">B1 · задета · id 17</text>
+<rect x="400" y="166" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="182" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">C1 · задета · id 17</text>
+<rect x="400" y="190" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="206" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">D1 · задета · id 17</text>
+<rect x="400" y="214" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="230" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">A2 · задета · id 17</text>
+<rect x="400" y="238" width="220" height="22" rx="3" fill="#fdba74" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="254" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">B2 · покрыта · id 17</text>
+<rect x="400" y="262" width="220" height="22" rx="3" fill="#fdba74" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="278" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">C2 · покрыта · id 17</text>
+<rect x="400" y="286" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="302" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">D2 · задета · id 17</text>
+<rect x="400" y="310" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="326" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">A3 · задета · id 17</text>
+<rect x="400" y="334" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="350" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">B3 · задета · id 17</text>
+<rect x="400" y="358" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="374" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">C3 · задета · id 17</text>
+<rect x="400" y="382" width="220" height="22" rx="3" fill="#ffedd5" stroke="#e5e7eb" stroke-width="1"/>
+<text x="410" y="398" font-size="12" fill="#1f2937" font-family="Consolas, 'DejaVu Sans Mono', monospace">D3 · задета · id 17</text>
+<rect x="640" y="88" width="220" height="150" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+<text x="652" y="110" font-size="13" fill="#1e3a8a" font-weight="700">1. Первичный фильтр</text>
+<text x="652" y="130" font-size="12" fill="#1e3a8a">область запроса → ячейки</text>
+<text x="652" y="148" font-size="12" fill="#1e3a8a">B-tree: строки с этими</text>
+<text x="652" y="166" font-size="12" fill="#1e3a8a">ячейками — кандидаты</text>
+<text x="652" y="184" font-size="12" fill="#1e3a8a">(с запасом: ячейка лишь</text>
+<text x="652" y="202" font-size="12" fill="#1e3a8a">«задета»)</text>
+<rect x="640" y="250" width="220" height="132" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1"/>
+<text x="652" y="272" font-size="13" fill="#166534" font-weight="700">2. Вторичный фильтр</text>
+<text x="652" y="292" font-size="12" fill="#166534">точная проверка</text>
+<text x="652" y="310" font-size="12" fill="#166534">STIntersects для</text>
+<text x="652" y="328" font-size="12" fill="#166534">кандидатов. Покрытая</text>
+<text x="652" y="346" font-size="12" fill="#166534">целиком ячейка — без</text>
+<text x="652" y="364" font-size="12" fill="#166534">проверки (internal filter)</text>
+<text x="640" y="404" font-size="11.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">В плане: Clustered Index Seek</text>
+<text x="640" y="420" font-size="11.5" fill="#374151" font-family="Consolas, 'DejaVu Sans Mono', monospace">(Spatial) → Filter</text>
+</svg>

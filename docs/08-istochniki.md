@@ -24,6 +24,19 @@
 - [Статья на Инфостарте](https://infostart.ru/1c/articles/1158005/)
 - [Влияние ограничений длины ключа индексов на проектирование объектов метаданных](http://itsphera.ru/1c/vliyanie-ogranichenij-dliny-klyucha-indeksov-na-proektirovanie-obektov-metadannyx.html) — для 8.1, лимиты в статье устаревшие (см. [2.1](02-mssql.md#21-каковы-ограничения-на-ключ-индекса-байты-число-колонок)), принцип актуален
 
+## Типы индексов MS SQL Server кроме B-tree (к разделу 2.5)
+
+- [Индексы для таблиц, оптимизированных для памяти](https://learn.microsoft.com/ru-ru/sql/relational-databases/in-memory-oltp/indexes-for-memory-optimized-tables) — hash и некластерный (Bw-tree), выбор `BUCKET_COUNT` — Microsoft Learn
+- [sys.dm_db_xtp_hash_index_stats](https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-db-xtp-hash-index-stats-transact-sql) — Microsoft Learn
+- [The Bw-Tree: A B-tree for New Hardware Platforms](https://www.microsoft.com/en-us/research/publication/the-bw-tree-a-b-tree-for-new-hardware/) — исходная статья Microsoft Research (2013)
+- [Полнотекстовый поиск](https://learn.microsoft.com/ru-ru/sql/relational-databases/search/full-text-search) — Microsoft Learn
+- [Общие сведения о пространственных индексах](https://learn.microsoft.com/ru-ru/sql/relational-databases/spatial/spatial-indexes-overview) — тесселяция, уровни сетки, правила — Microsoft Learn
+- [CREATE SPATIAL INDEX](https://learn.microsoft.com/ru-ru/sql/t-sql/statements/create-spatial-index-transact-sql) — Microsoft Learn
+- [XML-индексы](https://learn.microsoft.com/ru-ru/sql/relational-databases/xml/xml-indexes-sql-server) и [селективные XML-индексы](https://learn.microsoft.com/ru-ru/sql/relational-databases/xml/selective-xml-indexes-sxi) — Microsoft Learn
+- [Индексирование данных JSON](https://learn.microsoft.com/ru-ru/sql/relational-databases/json/index-json-data) и [CREATE JSON INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-json-index-transact-sql) — Microsoft Learn
+- [Векторный поиск и векторные индексы](https://learn.microsoft.com/en-us/sql/relational-databases/vectors/vectors-sql-server), [CREATE VECTOR INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-vector-index-transact-sql) и [VECTOR_SEARCH](https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-search-transact-sql) — Microsoft Learn
+- [DiskANN: Fast Accurate Billion-point Nearest Neighbor Search on a Single Node](https://www.microsoft.com/en-us/research/publication/diskann-fast-accurate-billion-point-nearest-neighbor-search-on-a-single-node/) — исходная статья Microsoft Research (2019)
+
 ## Материалы, по которым готовились ответы (NotebookLM)
 
 - Е. Рогов. «PostgreSQL 17 изнутри» — [бесплатно на сайте Postgres Pro](https://postgrespro.ru/education/books/internals)

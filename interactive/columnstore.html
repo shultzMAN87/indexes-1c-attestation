@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Columnstore в MS SQL — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:14px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:2;column-gap:28px}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li.cur{color:#9a3412;font-weight:700}
+.stat{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;margin:6px 0 10px}
+.stat span{background:#f3f4f6;border-radius:6px;padding:2px 8px}
+.groups{display:flex;flex-wrap:wrap;gap:10px}
+.rg{border:1px solid #d1d5db;border-radius:10px;padding:6px 8px;background:#f9fafb;min-width:190px}
+.rg.cur{border:2px solid #ea580c;background:#fff7ed}
+.rg.skip{opacity:.45}
+.rg .hd{font-size:11px;color:#6b7280;margin-bottom:4px}
+.rg .hd b{color:#111827}
+.segs{display:flex;gap:5px}
+.seg{border:1px solid #d1d5db;border-radius:6px;background:#fff;padding:3px;min-width:52px}
+.seg.read{border:2px solid #2563eb;box-shadow:0 0 0 2px #bfdbfe}
+.seg.noread{background:#f3f4f6;color:#9ca3af}
+.seg .sh{font-size:10px;color:#6b7280;text-align:center}
+.seg .mm{font-size:10px;font-family:Consolas,monospace;text-align:center;color:#374151;border-bottom:1px dashed #d1d5db;margin-bottom:2px}
+.seg.mmcheck .mm{background:#fef3c7;color:#92400e;font-weight:700}
+.v{display:block;font-family:Consolas,monospace;font-size:11px;padding:0 3px;border-radius:3px;text-align:center}
+.v.hit{background:#dcfce7;color:#166534;font-weight:700}
+.v.del{text-decoration:line-through;color:#dc2626;background:#fee2e2}
+.v.no{color:#9ca3af}
+.delta{border:2px dashed #9333ea;background:#faf5ff;border-radius:10px;padding:6px 8px;min-width:220px}
+.delta.cur{box-shadow:0 0 0 3px #e9d5ff}
+.delta table{border-collapse:collapse;font-size:11px;font-family:Consolas,monospace}
+.delta td,.delta th{padding:1px 6px;border-bottom:1px solid #ede9fe}
+.delta th{font-family:inherit;color:#6b21a8;font-weight:600}
+.delta tr.hit td{background:#dcfce7;color:#166534;font-weight:700}
+.delta tr.new td{background:#ede9fe}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid #e5e7eb}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>Columnstore: группы строк, сегменты, deltastore</h1>
+<p class="sub">Таблица <code>Продажи(Дата, Склад, Сумма)</code> с кластерным columnstore-индексом. Строки разбиты на группы (rowgroups), в каждой группе каждая колонка — отдельный сжатый сегмент с min/max. Выберите запрос или изменение и идите по шагам кнопкой «Дальше» или стрелками ← →. К разделу 2.5 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Запрос:</span>
+  <button onclick="query(15,18,null)"><code>SUM(Сумма) WHERE Дата BETWEEN 15 AND 18</code></button>
+  <button onclick="query(1,99,null)"><code>SUM(Сумма)</code> по всей таблице</button>
+  <button onclick="query(1,99,2)"><code>WHERE Склад = 2</code></button>
+</div>
+<div class="ctrl">
+  <span class="lbl">Порядок данных при построении:</span>
+  <button id="o-ord" onclick="setOrder(false)">по дате</button>
+  <button id="o-shuf" onclick="setOrder(true)">вразнобой</button>
+</div>
+<div class="ctrl">
+  <span class="lbl">Изменения:</span>
+  <button onclick="ins()">INSERT 3 строки</button>
+  <button onclick="del()">DELETE WHERE Дата = 16</button>
+  <button onclick="upd()">UPDATE Сумма WHERE Дата = 17</button>
+  <button onclick="reorg()">ALTER INDEX … REORGANIZE</button>
+  <button onclick="resetAll()">Сбросить</button>
+</div>
+
+<div class="sql" id="sql"></div>
+<div class="stat" id="stat"></div>
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<h2>Сжатые группы строк (COMPRESSED) и deltastore</h2>
+<div class="groups" id="groups"></div>
+
+<div class="leg">
+  <span><i style="background:#fef3c7"></i>проверка min/max</span>
+  <span><i style="border:2px solid #2563eb"></i>сегмент читается</span>
+  <span><i style="background:#f3f4f6"></i>сегмент не читается</span>
+  <span><i style="background:#dcfce7"></i>строка подходит</span>
+  <span><i style="background:#fee2e2"></i>помечена в delete bitmap</span>
+  <span><i style="border:2px dashed #9333ea;background:#faf5ff"></i>deltastore (обычный B-tree)</span>
+</div>
+<p class="note">Масштаб: здесь в группе 6 строк, в жизни — до 1 048 576. Пачка от 102 400 строк сжимается сразу, минуя deltastore; здесь «сразу» не показано — вставка по 3 строки. В настоящем индексе вместо значений хранятся закодированные и сжатые данные (словари, RLE, битовая упаковка), а min/max — в метаданных сегмента (<code>sys.column_store_segments</code>).</p>
+<h2>Все шаги операции (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const G = 6;
+let groups, delta, shuffled = false, nextDay, steps = [], si = 0, sqlText = '', gid;
+function rng(seed){ return () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }; }
+function build(rows){
+  if (shuffled){ const r = rng(5); for (let i = rows.length - 1; i > 0; i--){ const j = Math.floor(r() * (i + 1)); [rows[i], rows[j]] = [rows[j], rows[i]]; } }
+  groups = []; gid = 0;
+  for (let i = 0; i < rows.length; i += G) groups.push({id: gid++, rows: rows.slice(i, i + G)});
+}
+function resetAll(){
+  const rows = []; for (let d = 1; d <= 24; d++) rows.push({d, s: (d * 7) % 3 + 1, a: 100 + (d * 37) % 90, del: false});
+  build(rows); delta = []; nextDay = 25;
+  sqlText = 'CREATE CLUSTERED COLUMNSTORE INDEX CCI_Продажи ON dbo.Продажи;';
+  steps = [{title: 'Исходное состояние', text: shuffled ? 'Данные загружены вразнобой: в каждой группе даты из всего месяца, min и max сегментов «Дата» почти одинаковые.' : 'Данные загружены по дате: группа 0 — дни 1–6, группа 1 — 7–12 и т.д. У сегментов «Дата» узкие непересекающиеся min/max.', hl: {}}];
+  si = 0; draw();
+}
+function setOrder(v){ shuffled = v; $('o-ord').classList.toggle('sel', !v); $('o-shuf').classList.toggle('sel', v); resetAll(); }
+const mm = (g, c) => { const v = g.rows.map(r => r[c]); return [Math.min(...v), Math.max(...v)]; };
+const live = g => g.rows.filter(r => !r.del).length;
+
+function query(lo, hi, sk){
+  const S = [], add = (title, text, hl) => S.push({title, text, hl: hl || {}});
+  const col = sk ? 's' : 'd', cname = sk ? 'Склад' : 'Дата';
+  const ok = r => !r.del && (sk ? r.s === sk : r.d >= lo && r.d <= hi);
+  sqlText = sk ? `SELECT SUM(Сумма) FROM dbo.Продажи WHERE Склад = ${sk};` : hi === 99 ? 'SELECT SUM(Сумма) FROM dbo.Продажи;' : `SELECT SUM(Сумма) FROM dbo.Продажи WHERE Дата BETWEEN ${lo} AND ${hi};`;
+  const all = hi === 99 && !sk;
+  const pass = groups.filter(g => { if (all) return true; const [a, b] = mm(g, col); return sk ? (a <= sk && sk <= b) : !(b < lo || a > hi); });
+  const skipped = groups.filter(g => !pass.includes(g));
+  if (!all) add('Метаданные: min/max сегментов', `Сначала — только метаданные: min/max сегментов колонки «${cname}» каждой группы. Группа, где нужного значения быть не может, пропускается целиком: <b>segment elimination</b>. Пропущено групп: <b>${skipped.length}</b> из ${groups.length}.${shuffled && !sk ? ' Данные вразнобой — диапазоны групп перекрывают почти весь месяц, пропускать нечего.' : ''}${sk ? ' По колонке «Склад» данные не упорядочены — у каждой группы min = 1, max = 3.' : ''}`, {mm: col, skip: skipped.map(g => g.id)});
+  else add('Без условия', 'Условия нет — читаются все группы, но только колонка «Сумма». Сегменты «Дата» и «Склад» не трогаются вообще.', {});
+  let sum = 0, segs = 0;
+  for (const g of pass){
+    const cols = all ? ['a'] : [col, 'a'];
+    segs += cols.length;
+    const hits = g.rows.filter(ok);
+    hits.forEach(r => sum += r.a);
+    const dels = g.rows.filter(r => r.del).length;
+    add(`Группа ${g.id}: сегменты ${cols.map(c => ({d: 'Дата', s: 'Склад', a: 'Сумма'})[c]).join(' + ')}`, `Читаются только сегменты ${all ? '«Сумма»' : '«' + cname + '» и «Сумма»'} — пакетом (batch mode), а не строка за строкой. Подходящих строк: ${hits.length}.${dels ? ` Строк, помеченных в delete bitmap: ${dels} — они пропускаются.` : ''}`, {read: {g: g.id, cols}, hit: hits, skip: skipped.map(g => g.id)});
+  }
+  const dh = delta.filter(r => sk ? r.s === sk : r.d >= lo && r.d <= hi);
+  dh.forEach(r => sum += r.a);
+  if (delta.length) add('Deltastore', `Deltastore — обычное B-дерево: читается построчно, все колонки, min/max для него нет. Подходящих строк: ${dh.length}.`, {deltaRead: true, dhit: dh, skip: skipped.map(g => g.id)});
+  const rowPages = Math.ceil((groups.reduce((a, g) => a + g.rows.length, 0) + delta.length) / 3);
+  add('Итог', `SUM(Сумма) = <b>${sum}</b>. Прочитано сегментов: <b>${segs}</b>, пропущено групп: <b>${skipped.length}</b>${delta.length ? ', плюс deltastore' : ''}. Rowstore на тех же данных (по 3 строки на странице) прочитал бы все ${rowPages} страниц со всеми колонками. В <code>SET STATISTICS IO</code> это видно как <code>segment reads ${pass.length}, segment skipped ${skipped.length}</code>.`, {skip: skipped.map(g => g.id)});
+  steps = S; si = 0; draw();
+}
+function ins(){
+  const S = [], add = (t, x, h) => S.push({title: t, text: x, hl: h || {}});
+  const nr = []; for (let i = 0; i < 3; i++){ const d = nextDay++; nr.push({d, s: (d * 7) % 3 + 1, a: 100 + (d * 37) % 90, del: false}); }
+  sqlText = `INSERT INTO dbo.Продажи VALUES ${nr.map(r => `(${r.d}, ${r.s}, ${r.a})`).join(', ')};`;
+  delta.push(...nr);
+  add('Строки идут в deltastore', `Три строки — это мелкая вставка (меньше 102 400): сжимать её в отдельную группу бессмысленно. Строки попадают в <b>OPEN</b>-группу deltastore — обычное B-дерево. В deltastore строк: ${delta.length} из ${G}.`, {dnew: nr});
+  if (delta.length >= G) add('Группа заполнилась: CLOSED', `В deltastore ${delta.length} строк — группа закрывается (<b>CLOSED</b>) и ждёт сжатия. Сжатие делает фоновый процесс tuple mover (примерно раз в 5 минут) или <code>REORGANIZE</code>.`, {deltaRead: true});
+  else add('Пока не сжато', 'Запросы читают эти строки из deltastore построчно, без batch-обработки сегментов. Если вставлять по одной строке постоянно, deltastore растёт, а группы получаются мелкими.', {deltaRead: true});
+  steps = S; si = 0; draw();
+}
+function del(){
+  const S = [], add = (t, x, h) => S.push({title: t, text: x, hl: h || {}});
+  sqlText = 'DELETE FROM dbo.Продажи WHERE Дата = 16;';
+  let hit = null; for (const g of groups) for (const r of g.rows) if (r.d === 16 && !r.del){ r.del = true; hit = g; }
+  const dIdx = delta.findIndex(r => r.d === 16); if (dIdx >= 0) delta.splice(dIdx, 1);
+  if (hit) add('Пометка в delete bitmap', `Строка лежит в сжатой группе ${hit.id}. Переписывать сжатые сегменты дорого, поэтому строка только <b>помечается</b> удалённой в delete bitmap. Место не освобождается: в группе по-прежнему ${hit.rows.length} строк, из них живых ${live(hit)}.`, {read: {g: hit.id, cols: []}});
+  else add('Строки нет', 'Строка уже удалена. Нажмите «Сбросить».', {});
+  add('Что это значит', 'Доля помеченных строк — это и есть «фрагментация» columnstore (<code>deleted_rows</code> в <code>sys.dm_db_column_store_row_group_physical_stats</code>). Убирает их <code>REORGANIZE</code> или <code>REBUILD</code>.', {});
+  steps = S; si = 0; draw();
+}
+function upd(){
+  const S = [], add = (t, x, h) => S.push({title: t, text: x, hl: h || {}});
+  sqlText = 'UPDATE dbo.Продажи SET Сумма = Сумма + 1 WHERE Дата = 17;';
+  let old = null, g0 = null; for (const g of groups) for (const r of g.rows) if (r.d === 17 && !r.del){ r.del = true; old = r; g0 = g; }
+  if (!old){ add('Строки нет в сжатых группах', 'Строку уже обновляли — её новая версия в deltastore. Нажмите «Сбросить».', {}); steps = S; si = 0; draw(); return; }
+  add('UPDATE = DELETE + INSERT', `Сжатый сегмент на месте не меняется. Старая версия строки помечается в delete bitmap группы ${g0.id}…`, {read: {g: g0.id, cols: []}});
+  const nr = {d: 17, s: old.s, a: old.a + 1, del: false}; delta.push(nr);
+  add('…новая версия — в deltastore', `…а новая версия вставляется в deltastore. Поэтому частые UPDATE «размазывают» данные: сжатые группы копят удалённые строки, deltastore растёт.`, {dnew: [nr]});
+  steps = S; si = 0; draw();
+}
+function reorg(){
+  const S = [], add = (t, x, h) => S.push({title: t, text: x, hl: h || {}});
+  sqlText = 'ALTER INDEX CCI_Продажи ON dbo.Продажи REORGANIZE WITH (COMPRESS_ALL_ROW_GROUPS = ON);';
+  if (delta.length){
+    const nr = delta.splice(0, delta.length);
+    groups.push({id: gid++, rows: nr.map(r => ({...r}))});
+    add('Сжатие deltastore', `Строки deltastore (${nr.length}) сжимаются в новую колоночную группу ${gid - 1} — у её сегментов появляются min/max.${nr.length < G ? ' Группа получилась «обрезанной» (меньше полного размера) — в жизни таких лучше избегать.' : ''}`, {read: {g: gid - 1, cols: ['d', 's', 'a']}});
+  }
+  const dirty = groups.filter(g => g.rows.some(r => r.del));
+  for (const g of dirty){
+    const before = g.rows.length; g.rows = g.rows.filter(r => !r.del);
+    add(`Группа ${g.id}: убрать удалённые`, `В группе было удалено ${before - g.rows.length} из ${before} строк (больше 10%) — REORGANIZE пересобирает её без них (в жизни ещё и сливает мелкие группы).`, {read: {g: g.id, cols: ['d', 's', 'a']}});
+  }
+  if (!S.length) add('Нечего делать', 'Deltastore пуст, удалённых строк нет.', {});
+  steps = S; si = 0; draw();
+}
+
+function go(i){ if (i < 0 || i >= steps.length) return; si = i; draw(); }
+function draw(){
+  const st = steps[si], hl = st.hl || {};
+  $('sql').textContent = sqlText;
+  $('cap').innerHTML = `<b class="t">${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((x, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${x.title}</li>`).join('');
+  let h = '';
+  for (const g of groups){
+    const skip = (hl.skip || []).includes(g.id), rd = hl.read && hl.read.g === g.id;
+    h += `<div class="rg ${rd ? 'cur' : ''} ${skip ? 'skip' : ''}"><div class="hd"><b>Группа ${g.id}</b> · COMPRESSED · строк ${g.rows.length}${g.rows.some(r => r.del) ? ` · удалено ${g.rows.length - live(g)}` : ''}${skip ? ' · <b>пропущена</b>' : ''}</div><div class="segs">`;
+    for (const [c, nm] of [['d', 'Дата'], ['s', 'Склад'], ['a', 'Сумма']]){
+      const [a, b] = mm(g, c);
+      const isRead = rd && hl.read.cols.includes(c), anyRead = !!hl.read && hl.read.cols.length;
+      h += `<div class="seg ${isRead ? 'read' : anyRead && rd ? 'noread' : ''} ${hl.mm === c ? 'mmcheck' : ''}"><div class="sh">${nm}</div><div class="mm">${a}…${b}</div>`;
+      h += g.rows.map(r => `<span class="v ${r.del ? 'del' : isRead && (hl.hit || []).includes(r) ? 'hit' : ''}">${r[c]}</span>`).join('');
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+  h += `<div class="delta ${hl.deltaRead || hl.dnew ? 'cur' : ''}"><div class="hd" style="font-size:11px;color:#6b21a8"><b>Deltastore</b> · ${delta.length >= G ? 'CLOSED' : 'OPEN'} · строк ${delta.length} из ${G}</div>`;
+  h += delta.length ? '<table><tr><th>Дата</th><th>Склад</th><th>Сумма</th></tr>' + delta.map(r => `<tr class="${(hl.dhit || []).includes(r) ? 'hit' : (hl.dnew || []).includes(r) ? 'new' : ''}"><td>${r.d}</td><td>${r.s}</td><td>${r.a}</td></tr>`).join('') + '</table>' : '<span style="font-size:12px;color:#9ca3af">пусто</span>';
+  h += '</div>';
+  $('groups').innerHTML = h;
+  const tot = groups.reduce((a, g) => a + g.rows.length, 0), dl = groups.reduce((a, g) => a + g.rows.length - live(g), 0);
+  $('stat').innerHTML = `<span>сжатых групп: <b>${groups.length}</b></span><span>строк в группах: <b>${tot}</b></span><span>помечено удалёнными: <b>${dl}</b></span><span>в deltastore: <b>${delta.length}</b></span>`;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+setOrder(false);
+</script>
+</body>
+</html>

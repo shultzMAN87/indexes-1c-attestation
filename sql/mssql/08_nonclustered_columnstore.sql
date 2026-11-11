@@ -1,6 +1,6 @@
 /* =====================================================================
    Некластерный columnstore (NCCI) поверх обычной таблицы
-   К разделу 2.5 методички (docs/02-mssql.md)
+   К разделу 2.5 методички (docs/02-mssql.md), подраздел «Columnstore»
 
    Требуется: SQL Server 2016 SP1+ (подходят Developer и Express).
    Часть 7 (batch mode on rowstore) — SQL Server 2019+, Enterprise или

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Векторный индекс DiskANN (MS SQL 2025) — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;color:#6b7280;font-weight:600;margin:14px 0 8px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code,.mono{font-family:Consolas,'DejaVu Sans Mono',monospace}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+button.go{background:#ea580c;border-color:#ea580c;color:#fff}
+button.go:hover{background:#c2410c}
+.sql{font-family:Consolas,monospace;font-size:14px;background:#f3f4f6;border-radius:8px;padding:10px 12px;margin-bottom:12px;white-space:pre-wrap}
+.nav{display:flex;gap:8px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}
+.nav .cnt{font-size:13px;color:#6b7280}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+.slist{font-size:13px;margin:8px 0 0;padding-left:22px;color:#6b7280;columns:3;column-gap:28px}
+.slist li{cursor:pointer;break-inside:avoid}
+.slist li.cur{color:#9a3412;font-weight:700}
+.stat{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;margin:6px 0 10px}
+.stat span{background:#f3f4f6;border-radius:6px;padding:2px 8px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+#map svg{cursor:crosshair;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{padding:3px 6px;border-bottom:1px solid #f3f4f6;text-align:left}
+th{color:#6b7280;font-weight:600;font-size:11px}
+td.mono{font-family:Consolas,monospace}
+tr.cur td{background:#fed7aa;font-weight:700}
+tr.vis td{color:#9a3412}
+tr.top td{background:#dcfce7;color:#166534;font-weight:700}
+tr.miss td{background:#fee2e2;color:#991b1b}
+.leg{display:flex;gap:16px;margin-top:14px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:4px;border:1.5px solid #9ca3af}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>Векторный индекс DiskANN: жадный поиск по графу соседей</h1>
+<p class="sub">Таблица <code>Docs(Id, Embedding vector(n))</code>. Каждая точка — вектор документа (здесь на плоскости, в жизни — сотни измерений). Индекс — граф: у каждой вершины не больше <b>R = 4</b> исходящих рёбер к «соседям». Щёлкните по полю, чтобы задать вектор запроса <b>@q</b>, выберите ширину списка <b>L</b> и нажмите «Искать». Ищем <b>3</b> ближайших. К разделу 2.5 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Запрос @q:</span>
+  <button onclick="setQ(470,330)">точка 1</button><button onclick="setQ(200,320)">точка 2</button><button onclick="setQ(320,80)">точка 3</button>
+  <span class="lbl" style="margin-left:10px">Ширина списка L:</span>
+  <button id="l-3" onclick="setL(3)">3</button><button id="l-5" onclick="setL(5)">5</button><button id="l-10" onclick="setL(10)">10</button>
+  <button class="go" onclick="search()">Искать по индексу (VECTOR_SEARCH)</button>
+  <button onclick="brute()">Точный перебор (VECTOR_DISTANCE)</button>
+</div>
+
+<div class="sql" id="sql"></div>
+<div class="stat" id="stat"></div>
+<div class="nav">
+  <button onclick="go(0)">⏮</button>
+  <button onclick="go(si-1)">← Назад</button>
+  <button onclick="go(si+1)">Дальше →</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<div class="cap" id="cap"></div>
+
+<div class="grid">
+  <div><h2>Векторы и граф индекса</h2><div id="map"></div></div>
+  <div><h2>Список кандидатов (L лучших)</h2><div id="list"></div></div>
+</div>
+<div class="leg">
+  <span><i style="background:#2563eb;border-color:#1e3a8a"></i>входная точка</span>
+  <span><i style="background:#ea580c;border-color:#9a3412"></i>раскрывается сейчас</span>
+  <span><i style="background:#fdba74;border-color:#ea580c"></i>раскрыта</span>
+  <span><i style="background:#fff;border-color:#ea580c"></i>в списке, ещё не раскрыта</span>
+  <span><i style="background:#16a34a;border-color:#14532d"></i>ответ</span>
+  <span><i style="background:#fff;border:2px dashed #dc2626"></i>настоящий сосед, которого поиск пропустил</span>
+</div>
+<p class="note">Как построен граф: для каждой вершины берутся близкие кандидаты, и сосед добавляется, только если до него нельзя «дешевле» дойти через уже выбранного соседа (правило RobustPrune с параметром α &gt; 1). Поэтому у вершины есть и близкие рёбра, и несколько длинных — по ним поиск быстро пересекает пространство. DiskANN хранит граф на диске и читает вершины постранично, отсюда название. Ответ приближённый: при маленьком L поиск может «застрять» и пропустить настоящего соседа — мера качества называется <b>recall</b>.</p>
+<h2>Все шаги поиска (можно щёлкнуть)</h2>
+<ol class="slist" id="slist"></ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const W = 560, H = 400, K = 3, R = 4, ALPHA = 1.25;
+let P = [], out = [], entry, Q = [470, 330], Lw = 5, steps = [], si = 0, sqlText = '';
+function rng(seed){ return () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }; }
+const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+function build(){
+  const r = rng(21);
+  while (P.length < 64){ const p = [20 + r() * (W - 40), 20 + r() * (H - 40)]; if (P.every(q => d(p, q) > 34)) P.push(p); }
+  const cx = P.reduce((a, p) => a + p[0], 0) / P.length, cy = P.reduce((a, p) => a + p[1], 0) / P.length;
+  entry = P.reduce((bi, p, i) => d(p, [cx, cy]) < d(P[bi], [cx, cy]) ? i : bi, 0);
+  for (let i = 0; i < P.length; i++){
+    const cand = P.map((_, j) => j).filter(j => j !== i).sort((a, b) => d(P[i], P[a]) - d(P[i], P[b]));
+    const nb = [];
+    for (const c of cand){
+      if (nb.length >= R) break;
+      if (nb.every(n => ALPHA * d(P[n], P[c]) > d(P[i], P[c]))) nb.push(c);
+    }
+    out[i] = nb;
+  }
+}
+function setQ(x, y){ Q = [x, y]; steps = [{title: 'Запрос задан', text: 'Вектор запроса @q — красная звезда. Нажмите «Искать по индексу» или «Точный перебор».', hl: {}}]; si = 0; draw(); }
+function setL(n){ Lw = n; document.querySelectorAll('[id^=l-]').forEach(b => b.classList.toggle('sel', b.id === 'l-' + n)); }
+const exact = () => P.map((_, i) => i).sort((a, b) => d(P[a], Q) - d(P[b], Q)).slice(0, K);
+function search(){
+  sqlText = `SELECT t.Id, s.distance\nFROM VECTOR_SEARCH(TABLE = dbo.Docs AS t, COLUMN = Embedding,\n                   SIMILAR_TO = @q, METRIC = 'euclidean', TOP_N = ${K}) AS s\nORDER BY s.distance;   -- L = ${Lw}: внутренняя ширина поиска, в T-SQL не задаётся`;
+  const S = [], dq = i => d(P[i], Q);
+  let list = [entry], vis = new Set(), dc = 1;
+  S.push({title: 'Старт', text: `Поиск начинается со входной точки (вершина ${entry} — ближе всех к центру данных). Расстояние до @q: ${dq(entry).toFixed(0)}. Вычислено расстояний: 1.`, hl: {list: [...list], vis: new Set(), dc, cur: entry}});
+  while (true){
+    const c = list.find(i => !vis.has(i));
+    if (c === undefined) break;
+    vis.add(c);
+    const fresh = out[c].filter(n => !list.includes(n) && !vis.has(n));
+    dc += fresh.length;
+    const merged = [...new Set([...list, ...out[c]])].sort((a, b) => dq(a) - dq(b));
+    const dropped = merged.slice(Lw);
+    list = merged.slice(0, Lw);
+    S.push({title: `Раскрыть ${c}`, text: `Ближайшая к @q нераскрытая вершина в списке — <b>${c}</b> (расстояние ${dq(c).toFixed(0)}). Её соседи: ${out[c].join(', ')}; новых расстояний вычислено: ${fresh.length}. Список пересортирован и обрезан до L = ${Lw}${dropped.length ? ` — выпали ${dropped.filter(x => !vis.has(x)).join(', ') || 'только раскрытые'}` : ''}.`, hl: {list: [...list], vis: new Set(vis), dc, cur: c, edges: out[c].map(n => [c, n])}});
+  }
+  const top = list.slice(0, K), ex = exact(), hit = top.filter(i => ex.includes(i)).length;
+  S.push({title: 'Итог', text: `В списке не осталось нераскрытых вершин — поиск закончен. Ответ: ${top.join(', ')}. Настоящие 3 ближайших: ${ex.join(', ')}. <b>Recall = ${hit}/${K}</b>. Вычислено расстояний: <b>${dc}</b> из ${P.length}.${hit < K ? ' Поиск пропустил соседа (красный пунктир) — увеличьте L.' : ' При маленьком L (3) на других запросах поиск может пропустить соседа — попробуйте.'}`, hl: {list: [...list], vis: new Set(vis), dc, top, miss: ex.filter(i => !top.includes(i))}});
+  steps = S; si = 0; draw();
+}
+function brute(){
+  sqlText = `SELECT TOP (${K}) Id, VECTOR_DISTANCE('euclidean', Embedding, @q) AS dist\nFROM dbo.Docs\nORDER BY dist;   -- индекс не используется: полный перебор`;
+  const ex = exact();
+  steps = [{title: 'Полный перебор', text: `Расстояние вычисляется до <b>каждой</b> из ${P.length} строк, затем сортировка и TOP (${K}). Ответ точный: ${ex.join(', ')}. На миллионах векторов из сотен измерений это дорого — для этого и нужен индекс.`, hl: {all: true, top: ex, dc: P.length, list: ex}}];
+  si = 0; draw();
+}
+function go(i){ if (i < 0 || i >= steps.length) return; si = i; draw(); }
+function draw(){
+  const st = steps[si], hl = st.hl || {};
+  $('sql').textContent = sqlText || 'CREATE VECTOR INDEX VX_Docs ON dbo.Docs (Embedding) WITH (METRIC = \'euclidean\', TYPE = \'diskann\');';
+  $('cap').innerHTML = `<b class="t">${st.title}</b>${st.text}`;
+  $('cnt').textContent = `шаг ${si + 1} из ${steps.length}`;
+  $('slist').innerHTML = steps.map((x, j) => `<li class="${j === si ? 'cur' : ''}" onclick="go(${j})">${x.title}</li>`).join('');
+  const vis = hl.vis || new Set(), list = hl.list || [], top = hl.top || [], miss = hl.miss || [];
+  let s = `<svg id="svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Inter,Segoe UI,Arial">`;
+  for (let i = 0; i < P.length; i++) for (const j of out[i]) s += `<line x1="${P[i][0]}" y1="${P[i][1]}" x2="${P[j][0]}" y2="${P[j][1]}" stroke="#d1d5db" stroke-width="1"/>`;
+  if (hl.all) for (const p of P) s += `<line x1="${Q[0]}" y1="${Q[1]}" x2="${p[0]}" y2="${p[1]}" stroke="#93c5fd" stroke-width="0.7"/>`;
+  for (const [a, b] of (hl.edges || [])) s += `<line x1="${P[a][0]}" y1="${P[a][1]}" x2="${P[b][0]}" y2="${P[b][1]}" stroke="#ea580c" stroke-width="2.5"/>`;
+  P.forEach((p, i) => {
+    let f = '#e5e7eb', st = '#9ca3af', r = 5;
+    if (list.includes(i)){ f = '#fff'; st = '#ea580c'; r = 6; }
+    if (vis.has(i)){ f = '#fdba74'; st = '#ea580c'; r = 6; }
+    if (i === entry){ f = '#2563eb'; st = '#1e3a8a'; r = 7; }
+    if (hl.cur === i){ f = '#ea580c'; st = '#9a3412'; r = 8; }
+    if (top.includes(i)){ f = '#16a34a'; st = '#14532d'; r = 7; }
+    s += `<circle cx="${p[0]}" cy="${p[1]}" r="${r}" fill="${f}" stroke="${st}" stroke-width="1.5"/>`;
+    if (miss.includes(i)) s += `<circle cx="${p[0]}" cy="${p[1]}" r="12" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="4 3"/>`;
+    s += `<text x="${p[0] + 7}" y="${p[1] - 6}" font-size="9" fill="#6b7280">${i}</text>`;
+  });
+  const star = Array.from({length: 10}, (_, k) => { const rr = k % 2 ? 5 : 12, a = k * Math.PI / 5; return `${(Q[0] + rr * Math.sin(a)).toFixed(1)},${(Q[1] - rr * Math.cos(a)).toFixed(1)}`; }).join(' ');
+  s += `<polygon points="${star}" fill="#dc2626" stroke="#7f1d1d"/><text x="${Q[0] + 14}" y="${Q[1] + 16}" font-size="12" font-weight="700" fill="#991b1b">@q</text></svg>`;
+  $('map').innerHTML = s;
+  $('svg').addEventListener('click', e => { const b = e.currentTarget.getBoundingClientRect(); setQ(Math.round((e.clientX - b.left) * W / b.width), Math.round((e.clientY - b.top) * H / b.height)); });
+  let t = '<table><tr><th>#</th><th>вершина</th><th>расстояние до @q</th><th></th></tr>';
+  list.forEach((i, n) => { t += `<tr class="${top.includes(i) ? 'top' : hl.cur === i ? 'cur' : vis.has(i) ? 'vis' : ''}"><td>${n + 1}</td><td class="mono">${i}</td><td class="mono">${d(P[i], Q).toFixed(1)}</td><td>${vis.has(i) ? 'раскрыта' : ''}</td></tr>`; });
+  miss.forEach(i => { t += `<tr class="miss"><td>—</td><td class="mono">${i}</td><td class="mono">${d(P[i], Q).toFixed(1)}</td><td>пропущена</td></tr>`; });
+  $('list').innerHTML = list.length ? t + '</table>' : '<p class="note">Список пуст — поиск ещё не запускался.</p>';
+  $('stat').innerHTML = `<span>векторов: <b>${P.length}</b></span><span>R (рёбер на вершину): <b>${R}</b></span><span>L: <b>${Lw}</b></span><span>вычислено расстояний: <b>${hl.dc || 0}</b></span>`;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') go(si + 1);
+  if (e.key === 'ArrowLeft') go(si - 1);
+});
+build(); setL(5); setQ(470, 330);
+</script>
+</body>
+</html>

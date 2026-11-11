@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="492" viewBox="0 0 880 492" font-family="Inter, 'Segoe UI', Arial, sans-serif">
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+<marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+<marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+</defs>
+<rect x="0.5" y="0.5" width="879" height="491" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="24" y="32" font-size="17" font-weight="700" fill="#111827">Типы индексов MS SQL Server: что у них внутри</text>
+<text x="24" y="54" font-size="13" fill="#374151">Обычные индексы — это B-tree. Отдельная структура — у пяти типов, ещё три хранят «свою» логику в B-tree.</text>
+<rect x="20" y="72" width="272" height="404" rx="10" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+<text x="36" y="98" font-size="15" fill="#111827" font-weight="700">B-tree (rowstore)</text>
+<text x="36" y="116" font-size="12" fill="#6b7280">всё по умолчанию</text>
+<rect x="34" y="132" width="244" height="56" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.3"/>
+<text x="48" y="155" font-size="13.5" fill="#111827" font-weight="600">Кластерный / некластерный</text>
+<text x="48" y="174" font-size="12" fill="#4b5563">листья по порядку ключа</text>
+<rect x="34" y="198" width="244" height="56" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.3"/>
+<text x="48" y="221" font-size="13.5" fill="#111827" font-weight="600">Уникальный</text>
+<text x="48" y="240" font-size="12" fill="#4b5563">B-tree + проверка</text>
+<rect x="34" y="264" width="244" height="56" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.3"/>
+<text x="48" y="287" font-size="13.5" fill="#111827" font-weight="600">Фильтруемый</text>
+<text x="48" y="306" font-size="12" fill="#4b5563">B-tree по части строк</text>
+<rect x="34" y="330" width="244" height="56" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.3"/>
+<text x="48" y="353" font-size="13.5" fill="#111827" font-weight="600">С INCLUDE</text>
+<text x="48" y="372" font-size="12" fill="#4b5563">колонки в листьях</text>
+<rect x="34" y="396" width="244" height="56" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.3"/>
+<text x="48" y="419" font-size="13.5" fill="#111827" font-weight="600">Вычисляемая колонка,</text>
+<text x="48" y="438" font-size="12" fill="#4b5563">индексированное представление</text>
+<rect x="304" y="72" width="272" height="404" rx="10" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+<text x="320" y="98" font-size="15" fill="#111827" font-weight="700">Своя логика поверх B-tree</text>
+<text x="320" y="116" font-size="12" fill="#6b7280">B-tree как хранилище</text>
+<rect x="318" y="132" width="244" height="56" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.3"/>
+<text x="332" y="155" font-size="13.5" fill="#111827" font-weight="600">Spatial</text>
+<text x="332" y="174" font-size="12" fill="#4b5563">сетка ячеек → B-tree</text>
+<rect x="318" y="198" width="244" height="56" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.3"/>
+<text x="332" y="221" font-size="13.5" fill="#111827" font-weight="600">XML</text>
+<text x="332" y="240" font-size="12" fill="#4b5563">таблица узлов → B-tree</text>
+<rect x="318" y="264" width="244" height="56" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.3"/>
+<text x="332" y="287" font-size="13.5" fill="#111827" font-weight="600">JSON (2025)</text>
+<text x="332" y="306" font-size="12" fill="#4b5563">пути и значения → B-tree</text>
+<rect x="318" y="330" width="244" height="56" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.3"/>
+<text x="332" y="353" font-size="13.5" fill="#111827" font-weight="600">Deltastore columnstore</text>
+<text x="332" y="372" font-size="12" fill="#4b5563">буфер вставок — B-tree</text>
+<rect x="588" y="72" width="272" height="404" rx="10" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+<text x="604" y="98" font-size="15" fill="#111827" font-weight="700">Своя структура</text>
+<text x="604" y="116" font-size="12" fill="#6b7280">не дерево ключей</text>
+<rect x="602" y="132" width="244" height="56" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.3"/>
+<text x="616" y="155" font-size="13.5" fill="#111827" font-weight="600">Columnstore</text>
+<text x="616" y="174" font-size="12" fill="#4b5563">сжатые сегменты по колонкам</text>
+<rect x="602" y="198" width="244" height="56" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.3"/>
+<text x="616" y="221" font-size="13.5" fill="#111827" font-weight="600">Hash (In-Memory)</text>
+<text x="616" y="240" font-size="12" fill="#4b5563">бакеты + цепочки, только =</text>
+<rect x="602" y="264" width="244" height="56" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.3"/>
+<text x="616" y="287" font-size="13.5" fill="#111827" font-weight="600">Bw-tree (In-Memory)</text>
+<text x="616" y="306" font-size="12" fill="#4b5563">delta-записи, без блокировок</text>
+<rect x="602" y="330" width="244" height="56" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.3"/>
+<text x="616" y="353" font-size="13.5" fill="#111827" font-weight="600">Полнотекстовый</text>
+<text x="616" y="372" font-size="12" fill="#4b5563">слово → документы, позиции</text>
+<rect x="602" y="396" width="244" height="56" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.3"/>
+<text x="616" y="419" font-size="13.5" fill="#111827" font-weight="600">Векторный (2025)</text>
+<text x="616" y="438" font-size="12" fill="#4b5563">граф соседей DiskANN</text>
+</svg>
