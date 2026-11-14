@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Что такое эмбеддинг — карта смыслов — интерактивная схема</title>
+<style>
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;color:#111827;max-width:1140px;margin:24px auto;padding:0 16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+p.sub{color:#6b7280;margin:0 0 16px;font-size:14px}
+code{font-family:Consolas,'DejaVu Sans Mono',monospace;background:#f3f4f6;padding:1px 4px;border-radius:4px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.ctrl .lbl{color:#6b7280}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+button:hover{background:#f9fafb}
+button.sel{background:#fff7ed;border-color:#ea580c;color:#9a3412}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+svg{cursor:crosshair;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;max-width:100%;height:auto}
+.cap{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-size:15px;min-height:72px}
+.cap b.t{display:block;color:#9a3412;margin-bottom:2px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px}
+td,th{padding:4px 6px;border-bottom:1px solid #f3f4f6;text-align:left}
+th{color:#6b7280;font-weight:600;font-size:12px}
+td.mono{font-family:Consolas,monospace}
+tr.top td{background:#dcfce7;color:#166534;font-weight:700}
+.leg{display:flex;gap:16px;margin-top:10px;font-size:12px;color:#374151;flex-wrap:wrap}
+.leg i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:4px}
+.note{font-size:13px;color:#6b7280;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>Что такое эмбеддинг: карта смыслов</h1>
+<p class="sub">Модель ставит каждый текст в точку пространства: похожие по смыслу — рядом. Вектор — это координаты точки. Здесь 2 измерения, у настоящих моделей — от сотен до тысяч (<code>vector(1536)</code>). Щёлкните по слову — увидите ближайших соседей; щёлкните по пустому месту — это «ваш запрос». Переключите метрику: евклидово расстояние меряет линейкой, косинусное — угол между стрелками из центра. К разделу 2.5 методички.</p>
+
+<div class="ctrl">
+  <span class="lbl">Метрика:</span>
+  <button id="m-euclidean" class="sel" onclick="setM('euclidean')">euclidean — расстояние</button>
+  <button id="m-cosine" onclick="setM('cosine')">cosine — угол</button>
+  <span class="lbl" style="margin-left:10px">Соседей:</span>
+  <button id="k-3" class="sel" onclick="setK(3)">3</button><button id="k-5" onclick="setK(5)">5</button>
+</div>
+
+<div class="grid">
+<div>
+<svg id="map" viewBox="0 0 680 420" width="680" height="420">
+<g id="axes"></g><g id="lines"></g><g id="pts"></g><g id="q"></g>
+</svg>
+<div class="leg">
+  <span><i style="background:#0d9488"></i>фрукты</span>
+  <span><i style="background:#7c3aed"></i>транспорт</span>
+  <span><i style="background:#ea580c"></i>документы</span>
+  <span><i style="background:#db2777"></i>животные</span>
+  <span><i style="background:#9ca3af"></i>между группами</span>
+</div>
+</div>
+<div>
+<div class="cap" id="cap"><b class="t">Начните с клика</b>Выберите слово или точку на карте.</div>
+<table id="tbl"></table>
+</div>
+</div>
+
+<p class="note">Что заметить. 1) «Фруктовый сок» и «доставка» стоят между группами: эмбеддинг задаёт положение, а не раскладывает по ящикам. 2) Подписей у осей нет — смысл имеет только близость точек. 3) При <code>cosine</code> важна не дальность от центра, а направление: точки на одном луче считаются одинаковыми, даже если одна далеко, а другая близко. 4) Найти ближайшие здесь легко перебором; на миллионах векторов из сотен измерений для этого нужен векторный индекс (см. схему DiskANN).</p>
+
+<script>
+const C={f:'#0d9488',t:'#7c3aed',d:'#ea580c',a:'#db2777',g:'#9ca3af'};
+const P=[['яблоко',130,95,'f'],['груша',170,80,'f'],['апельсин',150,140,'f'],['банан',200,118,'f'],['лимон',105,135,'f'],
+['автобус',480,90,'t'],['трамвай',520,70,'t'],['такси',545,118,'t'],['самолёт',600,55,'t'],['велосипед',455,138,'t'],
+['накладная',455,295,'d'],['счёт-фактура',505,318,'d'],['акт',462,342,'d'],['платёжка',540,280,'d'],['договор',560,345,'d'],
+['кошка',150,290,'a'],['собака',192,302,'a'],['хомяк',125,330,'a'],['попугай',205,348,'a'],
+['доставка',500,205,'g'],['фруктовый сок',250,170,'g']];
+const OX=340,OY=210,NS='http://www.w3.org/2000/svg',svg=document.getElementById('map');
+let metric='euclidean',K=3,last=null;
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e}
+function vx(x){return (x-OX)/300} function vy(y){return (OY-y)/200}
+function vecStr(x,y){return '['+vx(x).toFixed(2)+', '+vy(y).toFixed(2)+']'}
+function dist(ax,ay,bx,by){
+  if(metric==='euclidean')return Math.hypot(vx(ax)-vx(bx),vy(ay)-vy(by));
+  const a1=vx(ax),a2=vy(ay),b1=vx(bx),b2=vy(by);
+  const n=Math.hypot(a1,a2)*Math.hypot(b1,b2); if(!n)return 1;
+  return 1-(a1*b1+a2*b2)/n;}
+function drawAxes(){const A=document.getElementById('axes');A.innerHTML='';
+  if(metric!=='cosine')return;
+  el('line',{x1:20,y1:OY,x2:660,y2:OY,stroke:'#e5e7eb'},A);el('line',{x1:OX,y1:10,x2:OX,y2:410,stroke:'#e5e7eb'},A);
+  el('circle',{cx:OX,cy:OY,r:3,fill:'#6b7280'},A);
+  const t=el('text',{x:OX+6,y:OY+14,'font-size':11,fill:'#6b7280'},A);t.textContent='центр (0, 0)';}
+const pts=document.getElementById('pts');
+P.forEach((p,i)=>{const g=el('g',{style:'cursor:pointer'},pts);
+  el('circle',{cx:p[1],cy:p[2],r:6,fill:C[p[3]],id:'c'+i},g);
+  const t=el('text',{x:p[1]+10,y:p[2]+4,'font-size':13,fill:'#374151'},g);t.textContent=p[0];
+  g.addEventListener('click',e=>{e.stopPropagation();query(p[1],p[2],p[0],i)})});
+function query(x,y,name,skip){last=[x,y,name,skip];
+  const L=document.getElementById('lines'),Q=document.getElementById('q');L.innerHTML='';Q.innerHTML='';
+  P.forEach((p,i)=>document.getElementById('c'+i).setAttribute('r',6));
+  const all=P.map((p,i)=>({p,i,d:dist(x,y,p[1],p[2])})).filter(o=>o.i!==skip).sort((a,b)=>a.d-b.d);
+  const top=all.slice(0,K);
+  if(metric==='cosine'){el('line',{x1:OX,y1:OY,x2:x,y2:y,stroke:'#ea580c','stroke-width':2,'stroke-dasharray':'5 4'},L);
+    top.forEach(o=>el('line',{x1:OX,y1:OY,x2:o.p[1],y2:o.p[2],stroke:'#f59e0b','stroke-width':1.5,opacity:.7},L));}
+  else top.forEach((o,k)=>el('line',{x1:x,y1:y,x2:o.p[1],y2:o.p[2],stroke:'#f59e0b','stroke-width':3-k*0.4,'stroke-linecap':'round',opacity:1-k*0.12},L));
+  top.forEach(o=>document.getElementById('c'+o.i).setAttribute('r',8));
+  if(skip===undefined){el('circle',{cx:x,cy:y,r:7,fill:'none',stroke:'#ea580c','stroke-width':2.5},Q);
+    const t=el('text',{x:x+10,y:y-8,'font-size':13,'font-weight':700,fill:'#9a3412'},Q);t.textContent='ваш запрос';}
+  else document.getElementById('c'+skip).setAttribute('r',9);
+  document.getElementById('cap').innerHTML='<b class="t">'+name+' — вектор '+vecStr(x,y)+'</b>'+
+    (metric==='cosine'?'Косинусное расстояние = 1 − cos(угол). Сравниваются направления стрелок из центра, длина не важна.':'Евклидово расстояние — обычная линейка между точками.')+
+    ' Аналог в MS SQL: <code>VECTOR_DISTANCE(\''+metric+'\', Embedding, @q)</code>.';
+  let h='<tr><th>#</th><th>Слово</th><th>Вектор</th><th>Расстояние</th></tr>';
+  all.slice(0,8).forEach((o,k)=>{h+='<tr'+(k<K?' class="top"':'')+'><td>'+(k+1)+'</td><td>'+o.p[0]+'</td><td class="mono">'+vecStr(o.p[1],o.p[2])+'</td><td class="mono">'+o.d.toFixed(3)+'</td></tr>'});
+  document.getElementById('tbl').innerHTML=h;}
+svg.addEventListener('click',e=>{const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+  const c=pt.matrixTransform(svg.getScreenCTM().inverse());query(c.x,c.y,'ваш запрос')});
+function setM(m){metric=m;['euclidean','cosine'].forEach(x=>document.getElementById('m-'+x).classList.toggle('sel',x===m));drawAxes();if(last)query(...last)}
+function setK(k){K=k;[3,5].forEach(x=>document.getElementById('k-'+x).classList.toggle('sel',x===k));if(last)query(...last)}
+drawAxes();
+</script>
+</body>
+</html>
